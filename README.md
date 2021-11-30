@@ -34,6 +34,11 @@ MM-Wiki 是一个轻量级的企业知识分享与团队协同软件，可用于
 - [mm-wiki企业知识分享与团队协同软件](http://wiki.cifaz.com/), 用户名:admin, 密码:mmwiki, 点击不了请复制http://wiki.cifaz.com/
 
 # 安装
+## 0.下载源码安装
+- 在根目录 go build
+   ```
+- 在install目录 go build
+   ```
 ## 1. 自助安装
 
 - docker-compose部署
