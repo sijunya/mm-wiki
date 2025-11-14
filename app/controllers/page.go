@@ -283,7 +283,13 @@ func (this *PageController) Modify() {
 	}(documentId)
 
 	this.InfoLog("修改文档 " + documentId + " 成功")
-	this.jsonSuccess("文档修改成功！", saveType, "/document/index?document_id="+documentId)
+	// 当 save_type 为 "0"（保存并退出）时，返回重定向；
+	// 当 save_type 为 "1"（仅保存）时，不返回重定向，前端不会跳转。
+	if saveType == "0" {
+		this.jsonSuccess("文档修改成功！", saveType, "/document/index?document_id="+documentId)
+	} else {
+		this.jsonSuccess("文档修改成功！", saveType)
+	}
 }
 
 // document share display

@@ -10,6 +10,10 @@ var Page = {
      * @returns {boolean}
      */
     ajaxSave: function (element, sendEmail, isAutoFollow, isConfirm) {
+        // 默认行为：未显式指定时，视为“仅保存，不退出”
+        if (typeof isConfirm === 'undefined') {
+            isConfirm = false;
+        }
 
         /**
          * 成功信息条
@@ -53,8 +57,8 @@ var Page = {
             }
         }
 
-        // 直接保存
-        if(isConfirm == false){
+        // 直接保存（不弹备注、不退出编辑）
+        if (isConfirm === false) {
             var commentText = ""
             var options = {
                 dataType: 'json',
