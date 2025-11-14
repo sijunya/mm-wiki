@@ -73,8 +73,9 @@ func (this *AuthorController) Login() {
 
 	// save session
 	this.SetSession("author", user)
-	// save cookie
-	identify := utils.Encrypt.Md5Encode(this.Ctx.Request.UserAgent() + this.GetClientIp() + password)
+    // save cookie
+    // 移除 IP 绑定，只使用 UA + 密码 生成标识
+    identify := utils.Encrypt.Md5Encode(this.Ctx.Request.UserAgent() + password)
 	passportValue := utils.Encrypt.Base64Encode(username + "@" + identify)
 	passport := beego.AppConfig.String("author::passport")
 	cookieExpired, _ := beego.AppConfig.Int64("author::cookie_expired")
@@ -166,8 +167,9 @@ func (this *AuthorController) AuthLogin() {
 
 	// save session
 	this.SetSession("author", user)
-	// save cookie
-	identify := utils.Encrypt.Md5Encode(this.Ctx.Request.UserAgent() + this.GetClientIp() + passwordEncode)
+    // save cookie
+    // 移除 IP 绑定，只使用 UA + 密码 生成标识
+    identify := utils.Encrypt.Md5Encode(this.Ctx.Request.UserAgent() + passwordEncode)
 	passportValue := utils.Encrypt.Base64Encode(user["username"] + "@" + identify)
 	passport := beego.AppConfig.String("author::passport")
 	cookieExpired, _ := beego.AppConfig.Int64("author::cookie_expired")

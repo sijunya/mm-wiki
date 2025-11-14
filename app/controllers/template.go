@@ -91,10 +91,10 @@ func (this *TemplateController) isLogin() bool {
 	if username != userValue["username"] {
 		return false
 	}
-	// UAG and IP
-	if identify != utils.Encrypt.Md5Encode(this.Ctx.Request.UserAgent()+this.GetClientIp()+userValue["password"]) {
-		return false
-	}
+    // 使用 UA + 密码 进行校验（取消 IP 绑定）
+    if identify != utils.Encrypt.Md5Encode(this.Ctx.Request.UserAgent()+userValue["password"]) {
+        return false
+    }
 	// flush session
 	newUser, err := models.UserModel.GetUserByUserId(userValue["user_id"])
 	if err != nil {
