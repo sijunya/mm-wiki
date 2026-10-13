@@ -1,13 +1,25 @@
+<link rel="stylesheet" href="/static/plugins/markdown-editor/css/katex.min.css">
+<link rel="stylesheet" href="/static/plugins/markdown-editor/css/highlight-github.min.css">
+<link rel="stylesheet" href="/static/plugins/markdown-editor/css/editor.css">
+
+<style>
+    .custom-editor-box {
+        height: calc(100vh - 120px);
+        min-height: 520px;
+    }
+</style>
+
 <div class="container-fluid" style="height: 100%">
     <form id="page_form" action="/page/modify" method="post" style="height: 98%" onsubmit="return false">
     <div class="row">{{$pageContent := .page_content}}{{$document := .document}}
         <div class="col-md-12">
             <input type="hidden" name="document_id" value="{{$document.document_id}}">
+            <input type="hidden" id="markdown_content_input" name="document_page_editor-markdown-doc">
             <div class="row">
-                <div class="col-md-10">
+                <div class="col-md-9 col-lg-10">
                     <input type="text" name="name" class="form-control" placeholder="请输入文档名称" value="{{$document.name}}" {{if eq $document.parent_id "0"}} readonly="readonly" {{end}}>
                 </div>
-                <div class="col-md-2 text-center" >
+                <div class="col-md-3 col-lg-2 text-right">
                     <button type="button" class="btn btn-primary" onclick="Page.ajaxSave(this.form, {{.sendEmail}}, {{.autoFollowDoc}}, true)"><i class="fa fa-save"></i> 确认保存</button>
                     <button type="button" class="btn btn-primary" onclick="Page.ajaxSave(this.form, {{.sendEmail}}, {{.autoFollowDoc}}, false)"><i class="fa fa-save"></i> 直接保存</button>
                     <button type="button" class="btn btn-default" onclick="Page.cancelSave('确定要放弃此次修改吗?', '/document/index?document_id={{$document.document_id}}')"><i class="fa fa-mail-reply"></i> 取消</button>
@@ -15,165 +27,171 @@
             </div>
         </div>
     </div>
-    <div class="row" style="height: 98%; padding-top: 8px;">
-        <div class="col-md-12" style="height: 98%">
-            <div id="document_page_editor" style="height: 98%"></div>
+
+    <!-- 现代 Markdown 双栏编辑器容器 -->
+    <div class="row" style="padding-top: 8px;">
+        <div class="col-md-12">
+            <div class="app custom-editor-box" id="mm-editor-app">
+                <!-- 顶部工具栏 -->
+                <header class="toolbar">
+                    <div class="toolbar-left">
+                        <button class="tool-btn" type="button" onclick="parent.layoutToggle ? parent.layoutToggle() : null" title="展开/收起左侧文档树">
+                            <i class="fa fa-columns" style="font-size: 14px;"></i>
+                        </button>
+                        <div class="toolbar-divider"></div>
+                        <button class="tool-btn" data-action="bold" title="粗体 (Ctrl+B)">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 4h8a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"></path><path d="M6 12h9a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"></path></svg>
+                        </button>
+                        <button class="tool-btn" data-action="italic" title="斜体 (Ctrl+I)">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="19" y1="4" x2="10" y2="4"></line><line x1="14" y1="20" x2="5" y2="20"></line><line x1="15" y1="4" x2="9" y2="20"></line></svg>
+                        </button>
+                        <button class="tool-btn" data-action="strikethrough" title="删除线">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M16 4H9a3 3 0 0 0-2.83 4"></path><path d="M14 12a4 4 0 0 1 0 8H6"></path><line x1="4" x2="20" y1="12" y2="12"></line></svg>
+                        </button>
+                        
+                        <div class="tool-dropdown">
+                            <button class="tool-btn" title="标题">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 12h12"></path><path d="M6 20V4"></path><path d="M18 20V4"></path></svg>
+                            </button>
+                            <div class="tool-dropdown-menu">
+                                <button class="tool-dropdown-item" data-action="heading-1">H1 一级标题</button>
+                                <button class="tool-dropdown-item" data-action="heading-2">H2 二级标题</button>
+                                <button class="tool-dropdown-item" data-action="heading-3">H3 三级标题</button>
+                            </div>
+                        </div>
+
+                        <div class="toolbar-divider"></div>
+
+                        <button class="tool-btn" data-action="quote" title="引用">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V21M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2h.75c0 2.25.25 4-2.75 4v3"></path></svg>
+                        </button>
+                        <button class="tool-btn" data-action="code" title="代码块">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+                        </button>
+                        <button class="tool-btn" data-action="table" title="插入表格">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="3" y1="15" x2="21" y2="15"></line><line x1="12" y1="3" x2="12" y2="21"></line></svg>
+                        </button>
+                        <button class="tool-btn" data-action="list" title="无序列表">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="3.5" cy="5" r="1.5"></circle><circle cx="3.5" cy="12" r="1.5"></circle><circle cx="3.5" cy="19" r="1.5"></circle><path d="M8 5h13"></path><path d="M8 12h13"></path><path d="M8 19h13"></path></svg>
+                        </button>
+                        <button class="tool-btn" data-action="ordered-list" title="有序列表">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 5h10"></path><path d="M11 12h10"></path><path d="M11 19h10"></path><path d="M4 4h1v5"></path><path d="M4 9h2"></path></svg>
+                        </button>
+                        <button class="tool-btn" data-action="task-list" title="任务列表">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M13 5h8"></path><path d="M13 12h8"></path><path d="M13 19h8"></path><path d="m3 17 2 2 4-4"></path><rect x="3" y="4" width="6" height="6" rx="1"></rect></svg>
+                        </button>
+                        <button class="tool-btn" data-action="toc" title="插入目录 [TOC]">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="4" y1="6" x2="9" y2="6"></line><line x1="4" y1="12" x2="9" y2="12"></line><line x1="4" y1="18" x2="9" y2="18"></line><line x1="15" y1="6" x2="20" y2="6"></line><line x1="15" y1="12" x2="20" y2="12"></line><line x1="15" y1="18" x2="20" y2="18"></line></svg>
+                        </button>
+                        <button class="tool-btn" data-action="hr" title="分割线">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                        </button>
+
+                        <div class="toolbar-divider"></div>
+
+                        <!-- MM-Wiki 附件管理 -->
+                        <button class="tool-btn" type="button" onclick="Page.attachment({{$document.document_id}})" title="上传/管理附件">
+                            <i class="fa fa-paperclip" style="font-size: 14px;"></i>
+                        </button>
+                    </div>
+
+                    <div class="toolbar-right">
+                        <span style="font-size: 12px; color: var(--text-muted); margin-right: 8px;">支持截图直接 Ctrl+V 粘贴</span>
+                        <button class="tool-btn" data-action="theme" title="切换深色/日间主题">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line></svg>
+                        </button>
+                        <button class="tool-btn" data-action="preview-only" title="仅预览 / 双分栏">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
+                        </button>
+                    </div>
+                </header>
+
+                <!-- 双分栏编辑与预览主体 -->
+                <main class="editor-container">
+                    <div class="pane editor-pane">
+                        <div class="editor-wrapper">
+                            <div class="line-numbers" id="line-numbers"></div>
+                            <textarea id="editor" placeholder="在此输入 Markdown..." spellcheck="false"></textarea>
+                        </div>
+                        <div class="pane-label">Markdown</div>
+                    </div>
+                    
+                    <div class="resizer" id="resizer"></div>
+                    
+                    <div class="pane preview-pane">
+                        <div id="preview" class="preview-content"></div>
+                        <div class="pane-label">实时渲染</div>
+                    </div>
+                </main>
+
+                <!-- 底部状态栏 -->
+                <footer class="status-bar">
+                    <div class="status-left">
+                        <span id="save-status">就绪</span>
+                        <span class="status-sep">|</span>
+                        <span id="word-count">0 字</span>
+                        <span class="status-sep">|</span>
+                        <span id="cursor-pos">行 1, 列 1</span>
+                    </div>
+                    <div class="status-right">
+                        <label class="sync-scroll-label">
+                            <input type="checkbox" id="sync-scroll-check" checked>
+                            <span>双向同步滚动</span>
+                        </label>
+                    </div>
+                </footer>
+            </div>
         </div>
     </div>
     </form>
 </div>
+
+<!-- 依赖脚本 -->
+<script src="/static/plugins/markdown-editor/js/marked.min.js"></script>
+<script src="/static/plugins/markdown-editor/js/purify.min.js"></script>
+<script src="/static/plugins/markdown-editor/js/highlight.min.js"></script>
+<script src="/static/plugins/markdown-editor/js/katex.min.js"></script>
+<script src="/static/plugins/markdown-editor/js/katex-auto-render.min.js"></script>
+<script src="/static/plugins/markdown-editor/js/editor.js"></script>
+
 <script type="text/javascript">
-    document.addEventListener("keydown", function(e) {
-        if (e.keyCode == 83 && (navigator.platform.match("Mac") ? e.metaKey : e.ctrlKey)) {
-            e.preventDefault();
-            // 你的处理逻辑
-            console.log('Ctrl+S event captured!');
-            var form = document.getElementById("page_form");
-            Page.ajaxSave(form, {{.sendEmail}}, {{.autoFollowDoc}}, false);
-        }
-    }, false);
-    
     if(parent.layoutClose) {
         parent.layoutClose();
     }
     if(parent.hiddenScrollY) {
         parent.hiddenScrollY();
     }
-    var storageId = "mm_wiki_doc_"+{{$document.document_id}}
+
+    var editor;
+
     $(function() {
-        editormd.katexURL = {
-            js  : "/static/plugins/editor.md/lib/katex/katex.min",
-            css : "/static/plugins/editor.md/lib/katex/katex.min"
-        };
-        var editor = editormd("document_page_editor", {
-            width: "100%",
-            // height: height,
-            path : '/static/plugins/editor.md/lib/',
-            toolbarIcons : function() {
-                // Using "||" set icons align right.
-                return [
-                    "sidebar", "save", "|",
-                    "undo", "redo", "|",
-                    "bold", "del", "italic", "quote", "|",
-                    "h1", "h2", "h3", "h4", "h5", "h6", "|",
-                    "list-ul", "list-ol", "hr", "|",
-                    "link", "reference-link", "image", "attachment", "code", "preformatted-text", "code-block", "table", "datetime", "html-entities", "pagebreak", "|",
-                    "goto-line", "watch", "preview", "search", "|",
-                    "help"
-                ]
-            },
-            // 增加自定义工具栏
-            toolbarCustomIcons : {
-                sidebar   : '<a onclick="parent.layoutToggle()" title="展开关闭侧边栏"><i class="fa fa-columns item"></i></a>',
-                save : '<a onclick="Page.ajaxSave(document.getElementById(\'page_form\'), {{.sendEmail}}, {{.autoFollowDoc}}, false)" title="保存文档"><i class="fa fa-save"></i></a>',
-                attachment : '<a onclick="Page.attachment({{$document.document_id}})" title="上传附件"><i class="fa fa-paperclip item"></i></a>'
-            },
-            theme : "default",
-            previewTheme : "default",
-            editorTheme : "default",
-            markdown : {{$pageContent}},
-            codeFold : true,
-            placeholder: "欢迎使用 MM-Wiki，请使用 Markdown 规范编写！",
-            //syncScrolling : false,
-            // 保存 HTML 到 Textarea
-            saveHTMLToTextarea: false,
-            searchReplace: true,
-            // 关闭实时预览
-            //watch : false,
-            // 开启 HTML 标签解析，为了安全性，默认不开启
-            // htmlDecode : "style,script,iframe|on*,alert",
-            // 开启 HTML 标签解析，为了安全性，默认不开启
-            // htmlDecode : "style,script,iframe,sub,sup,embed,img|on*",
-            //关闭工具栏
-            //toolbar  : false,
-            // 关闭预览 HTML 的代码块高亮，默认开启
-            //previewCodeHighlight : false,
-            emoji : false,
-            taskList : true,
-            tocm : true,                  // Using [TOCM]
-            tex : true,                   // 开启科学公式TeX语言支持，默认关闭
-            flowChart : true,             // 开启流程图支持，默认关闭
-            sequenceDiagram : true,       // 开启时序/序列图支持，默认关闭,
-            //dialogLockScreen : false,   // 设置弹出层对话框不锁屏，全局通用，默认为true
-            //dialogShowMask : false,     // 设置弹出层对话框显示透明遮罩层，全局通用，默认为true
-            //dialogDraggable : false,    // 设置弹出层对话框不可拖动，全局通用，默认为true
-            //dialogMaskOpacity : 0.4,    // 设置透明遮罩层的透明度，全局通用，默认值为0.1
-            //dialogMaskBgColor : "#000", // 设置透明遮罩层的背景颜色，全局通用，默认为#fff
-            imageUpload : true,
-            imageFormats : ["jpg", "jpeg", "gif", "png", "bmp", "webp"],
-            imageUploadURL : "/image/upload?document_id={{$document.document_id}}",
-            onload : function() {
-                //Vincent [46603415@qq.com] 新增图片粘贴上传功能 Start
-                $('#document_page_editor').on("paste",function(e){
-                    //判断图片类型的正则
-                    var isImage=(/.jpg$|.jpeg$|.png$|.bmp$|.webp$|.gif$/i);
-                    var e = e || event;
-                    var img=null;
-                    //IE支持window.clipboardData,chrome支持e.originalEvent.clipboardData
-                    var clipboardData = e.originalEvent.clipboardData || window.clipboardData;
-                    if(!(clipboardData&&clipboardData.items)){
-                        return;
-                    }
-
-                    for(var i=0,length=clipboardData.items.length;i<length;i++){
-                        var item=clipboardData.items[i];
-                        if(item.kind==='file'&&isImage.test(item.type)){
-                            var time = Date.parse(new Date());
-                            img=item.getAsFile();
-                            var newname=time + "-" +img.name;
-                            var url='/image/upload?document_id={{$document.document_id}}&guid='+time;
-                            var formData=new FormData();
-                            var newImg=new File([img],newname,{type:img.type});
-                            console.log(newImg)
-                            formData.append('editormd-image-file',newImg);
-
-                            //上传图片
-                            var xhr=new XMLHttpRequest();
-                            //上传结束
-                            xhr.onload=function () {
-                                var data=JSON.parse(xhr.responseText);
-                                console.log(data)
-                                if (data.success === 1) {
-                                    editor.insertValue("![image](" + data.url + ")\r\n");
-                                }else {
-                                    alert(data.message)
-                                }
-                            }
-
-                            xhr.open('POST',url,true);
-                            xhr.send(formData);
-                            //当剪贴板里是图片时，禁止默认的粘贴
-                            return false;
-                        }
-                    }
-                });
-                //Vincent [46603415@qq.com] 新增图片粘贴上传功能 End
-                var docStorage = Storage.get(storageId);
-                if (docStorage !== "") {
-                    layer.confirm("是否恢复为上次未提交的本地文档？", {
-                        btn: ['是','否'],
-                        skin: Layers.skin,
-                        btnAlign: 'c',
-                        title: "<i class='fa fa-warning'></i><strong> 警告</strong>"
-                    }, function(index) {
-                        editor.setMarkdown(docStorage);
-                        layer.close(index)
-                    }, function() {});
-                }
-                // console.log('onload', this);
-                // this.fullscreen();
-                //this.unwatch();
-                //this.watch().fullscreen();
-                //this.setMarkdown("#PHP");
-                // todo resize height
-                // this.width("100%");
-                // this.height(600);
-                //this.resize("100%", 640);
-            },
-            onchange : function() {
-                Storage.set(storageId, editor.getMarkdown());
+        // 初始化现代编辑器
+        editor = new MMWikiEditor({
+            containerId: 'mm-editor-app',
+            editorId: 'editor',
+            previewId: 'preview',
+            resizerId: 'resizer',
+            hiddenInputId: 'markdown_content_input',
+            documentId: {{$document.document_id}},
+            initialContent: {{$pageContent}},
+            uploadUrl: '/image/upload',
+            onSave: function () {
+                var form = document.getElementById("page_form");
+                Page.ajaxSave(form, {{.sendEmail}}, {{.autoFollowDoc}}, false);
             }
         });
     });
 
+    // 监听 Ctrl+S 键盘事件 (保留 sijunya 定制的直接保存逻辑)
+    document.addEventListener("keydown", function(e) {
+        if (e.keyCode == 83 && (navigator.platform.match("Mac") ? e.metaKey : e.ctrlKey)) {
+            e.preventDefault();
+            console.log('Ctrl+S event captured!');
+            if (editor) {
+                document.getElementById('markdown_content_input').value = editor.getValue();
+            }
+            var form = document.getElementById("page_form");
+            Page.ajaxSave(form, {{.sendEmail}}, {{.autoFollowDoc}}, false);
+        }
+    }, false);
 </script>
