@@ -3,89 +3,79 @@
 <link rel="stylesheet" href="/static/plugins/markdown-editor/css/editor.css">
 
 <style>
-    body {
-        background-color: #f6f8fa !important;
+    /* 全局沉浸式白底工作区，彻底消除 iframe 内部卡片嵌套与灰色外边距 */
+    html, body, #frame-body {
+        background-color: #ffffff !important;
+        margin: 0 !important;
+        padding: 0 !important;
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "WenQuanYi Micro Hei", sans-serif !important;
+        color: #1f2328 !important;
+        overflow-x: hidden !important;
     }
 
-    #frame-body {
-        background-color: #f6f8fa !important;
-        padding-top: 0 !important;
-    }
-
-    .view-doc-container {
-        max-width: 1060px;
-        margin: 20px auto 60px auto;
-        padding: 0 16px;
+    /* 文档居中舒适阅读画布，与现代编辑预览 100% 统一 */
+    .view-doc-wrapper {
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 24px 48px 100px 48px;
         position: relative;
+        box-sizing: border-box;
     }
 
-    .view-doc-card {
-        background: #ffffff;
-        border: 1px solid #e1e4e8;
-        border-radius: 10px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-        overflow: hidden;
-    }
-
+    /* 顶部元信息与操作栏 */
     .view-doc-header {
-        padding: 24px 36px 20px 36px;
+        padding-bottom: 20px;
         border-bottom: 1px solid #eaecef;
-        background: #fafbfc;
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
-        gap: 20px;
+        margin-bottom: 28px;
     }
 
-    .doc-header-main {
-        flex: 1;
-        min-width: 0;
-    }
-
-    .doc-main-title {
-        font-size: 24px;
-        font-weight: 700;
-        color: #1f2328;
-        margin: 0 0 10px 0;
-        line-height: 1.35;
-    }
-
-    .doc-meta-row {
+    /* 路径面包屑导航 */
+    .view-doc-breadcrumb {
+        font-size: 13px;
+        color: #57606a;
+        margin-bottom: 10px;
         display: flex;
         align-items: center;
         flex-wrap: wrap;
-        gap: 8px;
-        font-size: 13px;
-        color: #656d76;
+        gap: 6px;
     }
 
-    .doc-meta-row a {
+    .view-doc-breadcrumb a {
         color: #0969da;
         text-decoration: none;
     }
 
-    .doc-meta-row a:hover {
+    .view-doc-breadcrumb a:hover {
         text-decoration: underline;
     }
 
-    .meta-divider {
+    .breadcrumb-sep {
         color: #d0d7de;
+        font-weight: normal;
     }
 
-    .meta-action-link {
-        cursor: pointer;
-        color: #57606a !important;
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
+    /* 标题与操作栏布局 */
+    .view-doc-title-row {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 20px;
+        margin-bottom: 12px;
     }
 
-    .meta-action-link:hover {
-        color: #0969da !important;
+    .view-doc-title {
+        font-size: 26px;
+        font-weight: 700;
+        color: #1f2328;
+        line-height: 1.35;
+        margin: 0;
+        flex: 1;
+        min-width: 0;
+        word-break: break-word;
     }
 
-    .doc-header-actions {
+    /* 操作按钮组 */
+    .view-doc-actions {
         display: flex;
         align-items: center;
         gap: 8px;
@@ -107,6 +97,7 @@
         transition: all 0.15s ease;
         cursor: pointer;
         box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+        line-height: normal;
     }
 
     .doc-action-btn:hover {
@@ -119,7 +110,7 @@
         background: #2563eb;
         border-color: #2563eb;
         color: #ffffff !important;
-        box-shadow: 0 1px 3px rgba(37, 99, 235, 0.3);
+        box-shadow: 0 1px 3px rgba(37, 99, 235, 0.25);
     }
 
     .doc-action-btn.btn-primary-action:hover {
@@ -127,11 +118,45 @@
         border-color: #1d4ed8;
     }
 
-    .view-doc-body {
+    /* 文档属性元数据 */
+    .view-doc-meta {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px;
+        font-size: 13px;
+        color: #656d76;
+    }
+
+    .view-doc-meta a {
+        color: #0969da;
+        text-decoration: none;
+    }
+
+    .view-doc-meta a:hover {
+        text-decoration: underline;
+    }
+
+    .meta-divider {
+        color: #d0d7de;
+    }
+
+    .meta-action-link {
+        cursor: pointer;
+        color: #57606a !important;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .meta-action-link:hover {
+        color: #0969da !important;
+    }
+
+    /* 正文容器 */
+    .view-doc-content-area {
         position: relative;
-        padding: 36px 44px 80px 44px;
-        min-height: 500px;
-        text-align: left !important;
+        min-height: 400px;
     }
 
     #document_page_view.preview-content {
@@ -139,20 +164,18 @@
         min-height: 400px;
         background: transparent !important;
         text-align: left !important;
+        font-size: 15px;
+        line-height: 1.75;
+        color: #24292e;
     }
 
-    /* 目录浮动样式 */
-    .dir-preview-box {
-        position: absolute;
+    /* 现代目录悬浮按钮（滚动页面时出现） */
+    .view-toc-floating-btn {
+        position: fixed;
+        right: 28px;
         top: 20px;
-        right: 32px;
-        z-index: 100;
-        width: auto !important;
-    }
-
-    .dir-preview-btn {
-        position: static !important;
-        display: inline-flex;
+        z-index: 1000;
+        display: none;
         align-items: center;
         gap: 6px;
         padding: 6px 14px;
@@ -161,66 +184,116 @@
         background: #ffffff;
         border: 1px solid #d0d7de;
         border-radius: 20px;
-        color: #57606a;
+        color: #24292e;
         cursor: pointer;
-        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
-        transition: all 0.2s;
-        width: auto !important;
-        height: auto !important;
-        line-height: normal !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        transition: all 0.2s ease;
     }
 
-    .dir-preview-btn:hover {
-        background: #f3f4f6;
-        color: #1f2328;
+    .view-toc-floating-btn:hover {
+        background: #f6f8fa;
         border-color: #8c959f;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
     }
 
-    .page-view-dir-toc {
-        display: none;
-        position: absolute;
-        right: 0;
-        top: 36px;
-        width: 280px;
+    /* 现代目录抽屉/下拉通用面板 */
+    .view-toc-panel {
+        width: 300px;
         max-height: 480px;
-        overflow-y: auto;
         background: #ffffff;
         border: 1px solid #d0d7de;
-        border-radius: 8px;
-        box-shadow: 0 8px 24px rgba(140, 149, 159, 0.2);
-        padding: 14px 18px;
-        z-index: 200;
+        border-radius: 10px;
+        box-shadow: 0 8px 28px rgba(0, 0, 0, 0.14);
+        z-index: 1001;
+        display: none;
+        flex-direction: column;
+        overflow: hidden;
+        animation: tocFadeIn 0.18s ease;
     }
 
-    .page-view-dir-toc .toc ul {
+    @keyframes tocFadeIn {
+        from { opacity: 0; transform: translateY(-6px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .view-toc-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 16px;
+        border-bottom: 1px solid #eaecef;
+        background: #fafbfc;
+        font-size: 13px;
+        font-weight: 600;
+        color: #24292e;
+    }
+
+    .view-toc-close {
+        border: none;
+        background: transparent;
+        font-size: 18px;
+        line-height: 1;
+        color: #57606a;
+        cursor: pointer;
+        padding: 0;
+    }
+
+    .view-toc-close:hover {
+        color: #1f2328;
+    }
+
+    .view-toc-body {
+        padding: 12px 16px 20px 16px;
+        overflow-y: auto;
+        flex: 1;
+    }
+
+    .view-toc-body ul {
         list-style: none;
         padding-left: 12px;
         margin: 0;
     }
 
-    .page-view-dir-toc .toc li {
-        margin-bottom: 6px;
+    .view-toc-body > ul {
+        padding-left: 0;
+    }
+
+    .view-toc-body li {
+        margin: 6px 0;
         line-height: 1.5;
         font-size: 13px;
     }
 
-    .page-view-dir-toc .toc a {
+    .view-toc-body a {
         color: #57606a;
         text-decoration: none;
+        display: block;
+        padding: 2px 4px;
+        border-radius: 4px;
+        transition: all 0.15s ease;
+        word-break: break-word;
     }
 
-    .page-view-dir-toc .toc a:hover {
+    .view-toc-body a:hover {
         color: #0969da;
-        text-decoration: underline;
+        background: #f3f4f6;
     }
 
     @media (max-width: 768px) {
-        .view-doc-header {
-            flex-direction: column;
-            padding: 20px;
+        .view-doc-wrapper {
+            padding: 20px 16px 80px 16px;
         }
-        .view-doc-body {
-            padding: 24px 20px;
+        .view-doc-title-row {
+            flex-direction: column;
+        }
+        .view-doc-actions {
+            width: 100%;
+            flex-wrap: wrap;
+        }
+        .view-toc-panel {
+            right: 16px !important;
+            left: 16px !important;
+            width: auto !important;
         }
     }
 </style>
@@ -228,60 +301,35 @@
 {{$pageContent := .page_content}}{{$document := .document}}{{$parentDocuments := .parent_documents}}
 {{$createUser := .create_user}}{{$editUser := .edit_user}}{{$collectionId := .collection_id}}{{$space := .space}}
 
-<div class="view-doc-container">
-    <div class="view-doc-card">
-        <!-- 顶部元信息与操作栏 -->
-        <div class="view-doc-header">
-            <div class="doc-header-main">
-                <h1 class="doc-main-title">{{$document.name}}</h1>
-                <div class="doc-meta-row">
-                    <span class="meta-item">
-                        <i class="fa fa-folder-open-o"></i>
-                        {{range $parentDocument := $parentDocuments}}
-                            {{if eq $parentDocument.parent_id "0"}}
-                                <strong><a target="_parent" href="/document/index?document_id={{$parentDocument.document_id}}">{{$parentDocument.name}}</a></strong>
-                            {{else}}
-                                <strong> / <a target="_parent" href="/document/index?document_id={{$parentDocument.document_id}}">{{$parentDocument.name}}</a></strong>
-                            {{end}}
-                        {{end}}
-                    </span>
-                    <span class="meta-divider">·</span>
-                    <span class="meta-item">
-                        <i class="fa fa-calendar-o"></i>
-                        {{if eq $createUser.user_id $.login_user_id}}
-                            <a href="/system/main/index" target="_parent">{{$createUser.username}}（{{$createUser.given_name}}）</a>
-                        {{else}}
-                            <a href="/user/info?user_id={{$createUser.user_id}}">{{$createUser.username}}（{{$createUser.given_name}}）</a>
-                        {{end}}
-                        创建于 {{dateFormat $document.create_time "Y-m-d H:i"}}
-                    </span>
-                    <span class="meta-divider">·</span>
-                    <span class="meta-item">
-                        <i class="fa fa-clock-o"></i>
-                        {{if eq $editUser.user_id $.login_user_id}}
-                            <a href="/system/main/index" target="_parent">{{$editUser.username}}（{{$editUser.given_name}}）</a>
-                        {{else}}
-                            <a href="/user/info?user_id={{$editUser.user_id}}">{{$editUser.username}}（{{$editUser.given_name}}）</a>
-                        {{end}}
-                        更新于 {{dateFormat $document.update_time "Y-m-d H:i"}}
-                    </span>
-                    <span class="meta-divider">·</span>
-                    <a class="meta-action-link" name="history" data-link="/document/history?document_id={{$document.document_id}}">
-                        <i class="fa fa-history"></i> 查看历史
-                    </a>
-                    <a class="meta-action-link" onclick="Page.attachment({{$document.document_id}})">
-                        <i class="fa fa-paperclip"></i> 附件
-                    </a>
-                </div>
-            </div>
+<div class="view-doc-wrapper">
+    <!-- 顶部元信息与操作栏 -->
+    <div class="view-doc-header">
+        <!-- 面包屑路径 -->
+        <div class="view-doc-breadcrumb">
+            <i class="fa fa-folder-open-o" style="color: #2563eb;"></i>
+            {{range $parentDocument := $parentDocuments}}
+                {{if eq $parentDocument.parent_id "0"}}
+                    <strong><a target="_parent" href="/document/index?document_id={{$parentDocument.document_id}}">{{$parentDocument.name}}</a></strong>
+                {{else}}
+                    <span class="breadcrumb-sep">/</span>
+                    <strong><a target="_parent" href="/document/index?document_id={{$parentDocument.document_id}}">{{$parentDocument.name}}</a></strong>
+                {{end}}
+            {{end}}
+        </div>
 
-            <!-- 右侧快捷操作按钮 -->
-            <div class="doc-header-actions">
+        <!-- 标题与快捷操作按钮行 -->
+        <div class="view-doc-title-row">
+            <h1 class="view-doc-title">{{$document.name}}</h1>
+
+            <div class="view-doc-actions">
                 {{if eq .is_editor true}}
                     <a class="doc-action-btn btn-primary-action" href="/page/edit?document_id={{$document.document_id}}">
                         <i class="glyphicon glyphicon-pencil"></i> 编辑
                     </a>
                 {{end}}
+                <button type="button" class="doc-action-btn" id="header-toc-btn" style="display: none;">
+                    <i class="fa fa-list-ul"></i> 目录
+                </button>
                 {{if eq $collectionId "0"}}
                     <a class="doc-action-btn" onclick="Common.ajaxSubmit('/collection/add?type=1&resource_id={{$document.document_id}}')">
                         <i class="glyphicon glyphicon-star-empty"></i> 收藏
@@ -309,20 +357,57 @@
             </div>
         </div>
 
-        <!-- 正文区域 -->
-        <div class="view-doc-body">
-            <div class="dir-preview-box">
-                <button type="button" class="dir-preview-btn">
-                    <i class="fa fa-list-ul"></i> 展开目录
-                </button>
-                <div class="page-view-dir-toc" id="page-view-dir-toc"></div>
-            </div>
-
-            <div id="document_page_view" class="preview-content">
-                <textarea id="raw_markdown_content" style="display:none;">{{$pageContent}}</textarea>
-            </div>
+        <!-- 文档元属性行 -->
+        <div class="view-doc-meta">
+            <span class="meta-item">
+                <i class="fa fa-calendar-o"></i>
+                {{if eq $createUser.user_id $.login_user_id}}
+                    <a href="/system/main/index" target="_parent">{{$createUser.username}}（{{$createUser.given_name}}）</a>
+                {{else}}
+                    <a href="/user/info?user_id={{$createUser.user_id}}">{{$createUser.username}}（{{$createUser.given_name}}）</a>
+                {{end}}
+                创建于 {{dateFormat $document.create_time "Y-m-d H:i"}}
+            </span>
+            <span class="meta-divider">·</span>
+            <span class="meta-item">
+                <i class="fa fa-clock-o"></i>
+                {{if eq $editUser.user_id $.login_user_id}}
+                    <a href="/system/main/index" target="_parent">{{$editUser.username}}（{{$editUser.given_name}}）</a>
+                {{else}}
+                    <a href="/user/info?user_id={{$editUser.user_id}}">{{$editUser.username}}（{{$editUser.given_name}}）</a>
+                {{end}}
+                更新于 {{dateFormat $document.update_time "Y-m-d H:i"}}
+            </span>
+            <span class="meta-divider">·</span>
+            <a class="meta-action-link" name="history" data-link="/document/history?document_id={{$document.document_id}}">
+                <i class="fa fa-history"></i> 查看历史
+            </a>
+            <a class="meta-action-link" onclick="Page.attachment({{$document.document_id}})">
+                <i class="fa fa-paperclip"></i> 附件
+            </a>
         </div>
     </div>
+
+    <!-- 正文渲染区域 -->
+    <div class="view-doc-content-area">
+        <div id="document_page_view" class="preview-content">
+            <textarea id="raw_markdown_content" style="display:none;">{{$pageContent}}</textarea>
+        </div>
+    </div>
+</div>
+
+<!-- 现代悬浮目录按钮（滚动离开顶部时显示） -->
+<button type="button" class="view-toc-floating-btn" id="view-toc-floating-btn">
+    <i class="fa fa-list-ul"></i> 目录
+</button>
+
+<!-- 统一现代目录面板（下拉与悬浮复用） -->
+<div class="view-toc-panel" id="view-toc-panel">
+    <div class="view-toc-header">
+        <span><i class="fa fa-list-ul" style="margin-right: 6px;"></i>文档目录</span>
+        <button type="button" class="view-toc-close" id="view-toc-close">&times;</button>
+    </div>
+    <div class="view-toc-body" id="page-view-dir-toc"></div>
 </div>
 
 <!-- 图片及 Mermaid SVG 全屏大图预览 -->
@@ -375,32 +460,90 @@
             targetId: "page-view-dir-toc"
         });
 
-        // 目录浮动效果
-        window.onscroll = function(){
-            var scrollHeight = document.documentElement.scrollTop || document.body.scrollTop;
-            var dirPreviewBox = $(".dir-preview-box");
-            if (scrollHeight > 120) {
-                dirPreviewBox.css({
+        // 检查是否有目录项
+        var tocList = $("#page-view-dir-toc").find("li");
+        var hasToc = tocList.length > 0;
+        if (hasToc) {
+            $("#header-toc-btn").show();
+
+            // 监听容器与页面滚动（兼容 body / frame-body 滚动容器）
+            var scrollContainer = $(window).add("#frame-body").add(document.body);
+            scrollContainer.on("scroll", function() {
+                var st = $("#frame-body").scrollTop() || $(window).scrollTop() || $(document.body).scrollTop() || 0;
+                if (st > 140) {
+                    $("#view-toc-floating-btn").fadeIn(150);
+                } else {
+                    $("#view-toc-floating-btn").fadeOut(150);
+                }
+            });
+        }
+
+        // 打开/关闭目录面板函数
+        function openToc(fromElement, isFixed) {
+            var panel = $("#view-toc-panel");
+            if (panel.is(":visible")) {
+                panel.fadeOut(150);
+                return;
+            }
+
+            if (isFixed) {
+                panel.css({
                     position: "fixed",
-                    top: "20px"
+                    top: "58px",
+                    right: "28px",
+                    left: "auto"
                 });
             } else {
-                dirPreviewBox.css({
+                var offset = fromElement.offset();
+                var btnWidth = fromElement.outerWidth();
+                var btnHeight = fromElement.outerHeight();
+                var docWidth = $(document).width();
+                panel.css({
                     position: "absolute",
-                    top: "20px"
+                    top: (offset.top + btnHeight + 8) + "px",
+                    right: (docWidth - (offset.left + btnWidth)) + "px",
+                    left: "auto"
                 });
             }
-        };
+            panel.fadeIn(150).css("display", "flex");
+        }
 
-        // 目录显示与隐藏
-        $(".dir-preview-btn").click(function () {
-            var pageViewDirToc = $(".page-view-dir-toc");
-            if (pageViewDirToc.is(":hidden")) {
-                $(this).html('<i class="fa fa-list-ul"></i> 隐藏目录');
-                pageViewDirToc.show();
-            } else {
-                $(this).html('<i class="fa fa-list-ul"></i> 展开目录');
-                pageViewDirToc.hide();
+        $("#header-toc-btn").on("click", function(e) {
+            e.stopPropagation();
+            openToc($(this), false);
+        });
+
+        $("#view-toc-floating-btn").on("click", function(e) {
+            e.stopPropagation();
+            openToc($(this), true);
+        });
+
+        $("#view-toc-close").on("click", function(e) {
+            e.stopPropagation();
+            $("#view-toc-panel").fadeOut(150);
+        });
+
+        // 点击目录链接平滑滚动到对应锚点
+        $("#page-view-dir-toc").on("click", "a", function(e) {
+            var targetId = $(this).attr("href");
+            if (targetId && targetId.startsWith("#")) {
+                var targetEl = $(targetId);
+                if (targetEl.length) {
+                    e.preventDefault();
+                    var scrollCont = $("#frame-body").length ? $("#frame-body") : $("html, body");
+                    var currentScroll = scrollCont.scrollTop() || $(document.body).scrollTop() || 0;
+                    var elRect = targetEl[0].getBoundingClientRect();
+                    var finalScroll = currentScroll + elRect.top - 20;
+                    scrollCont.animate({ scrollTop: finalScroll }, 200);
+                    $("#view-toc-panel").fadeOut(150);
+                }
+            }
+        });
+
+        // 点击外部空白收起目录面板
+        $(document).on("click", function(e) {
+            if (!$(e.target).closest("#view-toc-panel, #header-toc-btn, #view-toc-floating-btn").length) {
+                $("#view-toc-panel").fadeOut(150);
             }
         });
     });
