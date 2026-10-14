@@ -1,64 +1,271 @@
-<div style="padding: 14px 18px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'PingFang SC', sans-serif;">
-    <div style="background: #ffffff; border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 4px 12px rgba(0,0,0,0.03); padding: 18px 20px;">
+<style>
+    body#frame-body {
+        padding: 0 !important;
+        margin: 0 !important;
+        overflow: hidden !important;
+        background: #ffffff !important;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "PingFang SC", sans-serif;
+        -webkit-font-smoothing: antialiased;
+    }
+    .about-wrap {
+        padding: 22px 24px 18px 24px;
+        background: linear-gradient(180deg, #f8fafc 0%, #ffffff 50%);
+        box-sizing: border-box;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+    .about-header {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        margin-bottom: 18px;
+    }
+    .about-app-icon {
+        width: 52px;
+        height: 52px;
+        border-radius: 13px;
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.03);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease;
+    }
+    .about-app-icon:hover {
+        transform: translateY(-2px) scale(1.03);
+        box-shadow: 0 6px 16px rgba(37, 99, 235, 0.12);
+    }
+    .about-app-icon img {
+        height: 36px;
+        width: auto;
+        display: block;
+    }
+    .about-title-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .about-app-name {
+        margin: 0;
+        font-size: 19px;
+        font-weight: 700;
+        color: #0f172a;
+        letter-spacing: -0.02em;
+        line-height: 1.2;
+    }
+    .about-version-badge {
+        display: inline-flex;
+        align-items: center;
+        background: #eff6ff;
+        color: #2563eb;
+        font-size: 11px;
+        font-weight: 600;
+        padding: 2px 8px;
+        border-radius: 9999px;
+        border: 1px solid #dbeafe;
+        line-height: 1.4;
+    }
+    .about-tagline {
+        margin: 4px 0 0 0;
+        font-size: 12.5px;
+        color: #64748b;
+        line-height: 1.4;
+    }
+    .about-meta-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+        margin-bottom: 18px;
+    }
+    .about-meta-card {
+        background: #ffffff;
+        padding: 9px 12px;
+        border-radius: 9px;
+        border: 1px solid #e2e8f0;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        transition: all 0.15s ease;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+    }
+    .about-meta-card:hover {
+        border-color: #cbd5e1;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+        background: #f8fafc;
+    }
+    .about-meta-icon {
+        width: 30px;
+        height: 30px;
+        border-radius: 7px;
+        background: #f1f5f9;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        color: #475569;
+        font-size: 13.5px;
+    }
+    .about-meta-content {
+        min-width: 0;
+        flex: 1;
+    }
+    .about-meta-label {
+        font-size: 10.5px;
+        color: #94a3b8;
+        font-weight: 500;
+        line-height: 1.2;
+        margin-bottom: 2px;
+    }
+    .about-meta-value {
+        font-size: 12.5px;
+        font-weight: 600;
+        color: #1e293b;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: block;
+        line-height: 1.3;
+    }
+    .about-meta-link {
+        color: #2563eb;
+        text-decoration: none;
+        transition: color 0.15s ease;
+    }
+    .about-meta-link:hover {
+        color: #1d4ed8;
+        text-decoration: underline;
+    }
+    .about-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding-top: 14px;
+        border-top: 1px solid #f1f5f9;
+    }
+    .about-footer-info {
+        font-size: 11.5px;
+        color: #94a3b8;
+    }
+    .about-footer-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .about-btn {
+        height: 30px;
+        padding: 0 12px;
+        font-size: 12px;
+        font-weight: 500;
+        border-radius: 6px;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        text-decoration: none !important;
+        transition: all 0.15s ease;
+        box-sizing: border-box;
+    }
+    .about-btn-default {
+        background: #ffffff;
+        color: #475569;
+        border: 1px solid #d1d5db;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+    }
+    .about-btn-default:hover {
+        background: #f9fafb;
+        color: #111827;
+        border-color: #9ca3af;
+    }
+    .about-btn-primary {
+        background: #2563eb;
+        color: #ffffff;
+        border: 1px solid #2563eb;
+        box-shadow: 0 1px 2px rgba(37,99,235,0.2);
+    }
+    .about-btn-primary:hover {
+        background: #1d4ed8;
+        border-color: #1d4ed8;
+        color: #ffffff;
+    }
+</style>
+
+<div class="about-wrap">
+    <div>
         <!-- Header -->
-        <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 16px; padding-bottom: 14px; border-bottom: 1px solid #f1f5f9;">
-            <div style="width: 44px; height: 44px; border-radius: 10px; background: linear-gradient(135deg, #f8fafc, #f1f5f9); border: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                <img src="/static/images/icon_xs.png" style="height: 28px; width: auto;" alt="MM-Wiki">
+        <div class="about-header">
+            <div class="about-app-icon">
+                <img src="/static/images/ribbon_hi_res.png" alt="MM-Wiki">
             </div>
             <div>
-                <div style="display: flex; align-items: center; gap: 8px;">
-                    <h3 style="margin: 0; font-size: 18px; font-weight: 700; color: #0f172a; letter-spacing: -0.01em;">MM-Wiki</h3>
-                    <span style="background: #eff6ff; color: #2563eb; font-size: 11.5px; font-weight: 600; padding: 2px 8px; border-radius: 9999px; border: 1px solid #dbeafe;">
+                <div class="about-title-row">
+                    <h3 class="about-app-name">MM-Wiki</h3>
+                    <span class="about-version-badge">
                         {{.version}}
                     </span>
                 </div>
-                <p style="margin: 4px 0 0 0; font-size: 12.5px; color: #64748b;">
+                <p class="about-tagline">
                     轻量、高效的团队知识库与协作分享平台
                 </p>
             </div>
         </div>
 
         <!-- Meta Grid -->
-        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 20px;">
-            <div style="background: #f8fafc; padding: 10px 14px; border-radius: 8px; border: 1px solid #f1f5f9; display: flex; align-items: center; gap: 10px;">
-                <i class="fa fa-user" style="color: #64748b; font-size: 14px;"></i>
-                <div>
-                    <div style="font-size: 11px; color: #94a3b8; font-weight: 500;">作者 / Maintainer</div>
-                    <a href="https://github.com/phachon" target="_blank" style="font-size: 13px; font-weight: 600; color: #2563eb; text-decoration: none;">phachon</a>
+        <div class="about-meta-grid">
+            <div class="about-meta-card">
+                <div class="about-meta-icon">
+                    <i class="fa fa-user"></i>
+                </div>
+                <div class="about-meta-content">
+                    <div class="about-meta-label">作者 / Maintainer</div>
+                    <a href="https://github.com/phachon" target="_blank" class="about-meta-value about-meta-link">phachon</a>
                 </div>
             </div>
 
-            <div style="background: #f8fafc; padding: 10px 14px; border-radius: 8px; border: 1px solid #f1f5f9; display: flex; align-items: center; gap: 10px;">
-                <i class="fa fa-github" style="color: #64748b; font-size: 16px;"></i>
-                <div style="min-width: 0;">
-                    <div style="font-size: 11px; color: #94a3b8; font-weight: 500;">开源仓库</div>
-                    <a href="https://github.com/chaiyd/mm-wiki" target="_blank" style="font-size: 13px; font-weight: 600; color: #0f172a; text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block;" onmouseover="this.style.color='#2563eb'" onmouseout="this.style.color='#0f172a'">chaiyd/mm-wiki</a>
+            <div class="about-meta-card">
+                <div class="about-meta-icon">
+                    <i class="fa fa-github"></i>
+                </div>
+                <div class="about-meta-content">
+                    <div class="about-meta-label">开源仓库</div>
+                    <a href="https://github.com/chaiyd/mm-wiki" target="_blank" class="about-meta-value about-meta-link" title="chaiyd/mm-wiki">chaiyd/mm-wiki</a>
                 </div>
             </div>
 
-            <div style="background: #f8fafc; padding: 10px 14px; border-radius: 8px; border: 1px solid #f1f5f9; display: flex; align-items: center; gap: 10px;">
-                <i class="fa fa-certificate" style="color: #64748b; font-size: 14px;"></i>
-                <div>
-                    <div style="font-size: 11px; color: #94a3b8; font-weight: 500;">开源协议</div>
-                    <span style="font-size: 13px; font-weight: 600; color: #334155;">MIT License</span>
+            <div class="about-meta-card">
+                <div class="about-meta-icon">
+                    <i class="fa fa-certificate"></i>
+                </div>
+                <div class="about-meta-content">
+                    <div class="about-meta-label">开源协议</div>
+                    <span class="about-meta-value">MIT License</span>
                 </div>
             </div>
 
-            <div style="background: #f8fafc; padding: 10px 14px; border-radius: 8px; border: 1px solid #f1f5f9; display: flex; align-items: center; gap: 10px;">
-                <i class="fa fa-copyright" style="color: #64748b; font-size: 14px;"></i>
-                <div>
-                    <div style="font-size: 11px; color: #94a3b8; font-weight: 500;">版权所有</div>
-                    <span style="font-size: 13px; font-weight: 500; color: #334155;">{{.copyright}}</span>
+            <div class="about-meta-card">
+                <div class="about-meta-icon">
+                    <i class="fa fa-copyright"></i>
+                </div>
+                <div class="about-meta-content">
+                    <div class="about-meta-label">版权归属</div>
+                    <span class="about-meta-value">{{.copyright}}</span>
                 </div>
             </div>
         </div>
+    </div>
 
-        <!-- Footer Actions -->
-        <div style="display: flex; align-items: center; justify-content: flex-end; gap: 10px;">
-            <a href="https://github.com/chaiyd/mm-wiki" target="_blank" class="btn btn-default" style="height: 32px; padding: 0 14px; font-size: 12.5px; border-radius: 6px; display: inline-flex; align-items: center; gap: 6px; color: #475569; text-decoration: none;">
+    <!-- Footer Actions -->
+    <div class="about-footer">
+        <div class="about-footer-info">
+            Powered by Go & Beego
+        </div>
+        <div class="about-footer-actions">
+            <a href="https://github.com/chaiyd/mm-wiki" target="_blank" class="about-btn about-btn-default">
                 <i class="fa fa-star" style="color: #eab308;"></i> GitHub Star
             </a>
-            <a href="https://github.com/chaiyd/mm-wiki/blob/master/LICENSE" target="_blank" class="btn btn-primary" style="height: 32px; padding: 0 14px; font-size: 12.5px; border-radius: 6px; display: inline-flex; align-items: center; gap: 6px; font-weight: 500; text-decoration: none;">
+            <a href="https://github.com/chaiyd/mm-wiki/blob/master/LICENSE" target="_blank" class="about-btn about-btn-primary">
                 <i class="fa fa-file-text-o"></i> 开源协议
             </a>
         </div>
