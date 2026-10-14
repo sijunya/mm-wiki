@@ -3,96 +3,323 @@
 <link rel="stylesheet" href="/static/plugins/markdown-editor/css/editor.css">
 
 <style>
-    .md-view-box {
-        background-color: #fff;
-        padding-top: 10px;
+    body {
+        background-color: #f6f8fa !important;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "WenQuanYi Micro Hei", sans-serif !important;
     }
-    #document_page_view.preview-content {
-        padding: 15px 30px 60px 30px;
+
+    #frame-body {
+        background-color: #f6f8fa !important;
+        padding-top: 0 !important;
+    }
+
+    .view-doc-container {
+        max-width: 1060px;
+        margin: 20px auto 60px auto;
+        padding: 0 16px;
+        position: relative;
+    }
+
+    .view-doc-card {
+        background: #ffffff;
+        border: 1px solid #e1e4e8;
+        border-radius: 10px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+        overflow: hidden;
+    }
+
+    .view-doc-header {
+        padding: 24px 36px 20px 36px;
+        border-bottom: 1px solid #eaecef;
+        background: #fafbfc;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 20px;
+    }
+
+    .doc-header-main {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .doc-main-title {
+        font-size: 24px;
+        font-weight: 700;
+        color: #1f2328;
+        margin: 0 0 10px 0;
+        line-height: 1.35;
+    }
+
+    .doc-meta-row {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px;
+        font-size: 13px;
+        color: #656d76;
+    }
+
+    .doc-meta-row a {
+        color: #0969da;
+        text-decoration: none;
+    }
+
+    .doc-meta-row a:hover {
+        text-decoration: underline;
+    }
+
+    .meta-divider {
+        color: #d0d7de;
+    }
+
+    .meta-action-link {
+        cursor: pointer;
+        color: #57606a !important;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .meta-action-link:hover {
+        color: #0969da !important;
+    }
+
+    .doc-header-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-shrink: 0;
+    }
+
+    .doc-action-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 14px;
+        font-size: 13px;
+        font-weight: 500;
+        border-radius: 6px;
+        border: 1px solid #d0d7de;
+        background: #ffffff;
+        color: #24292e !important;
+        text-decoration: none !important;
+        transition: all 0.15s ease;
+        cursor: pointer;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+    }
+
+    .doc-action-btn:hover {
+        background: #f3f4f6;
+        border-color: #8c959f;
+        color: #1f2328 !important;
+    }
+
+    .doc-action-btn.btn-primary-action {
+        background: #2563eb;
+        border-color: #2563eb;
+        color: #ffffff !important;
+        box-shadow: 0 1px 3px rgba(37, 99, 235, 0.3);
+    }
+
+    .doc-action-btn.btn-primary-action:hover {
+        background: #1d4ed8;
+        border-color: #1d4ed8;
+    }
+
+    .view-doc-body {
+        position: relative;
+        padding: 36px 44px 80px 44px;
         min-height: 500px;
-        background: #fff;
-        font-size: 15px;
+        text-align: left !important;
     }
+
+    #document_page_view.preview-content {
+        padding: 0 !important;
+        min-height: 400px;
+        background: transparent !important;
+        text-align: left !important;
+    }
+
+    /* 目录浮动样式 */
     .dir-preview-box {
+        position: absolute;
+        top: 20px;
+        right: 32px;
         z-index: 100;
+        width: auto !important;
+    }
+
+    .dir-preview-btn {
+        position: static !important;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 14px;
+        font-size: 13px;
+        font-weight: 500;
+        background: #ffffff;
+        border: 1px solid #d0d7de;
+        border-radius: 20px;
+        color: #57606a;
+        cursor: pointer;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+        transition: all 0.2s;
+        width: auto !important;
+        height: auto !important;
+        line-height: normal !important;
+    }
+
+    .dir-preview-btn:hover {
+        background: #f3f4f6;
+        color: #1f2328;
+        border-color: #8c959f;
+    }
+
+    .page-view-dir-toc {
+        display: none;
+        position: absolute;
+        right: 0;
+        top: 36px;
+        width: 280px;
+        max-height: 480px;
+        overflow-y: auto;
+        background: #ffffff;
+        border: 1px solid #d0d7de;
+        border-radius: 8px;
+        box-shadow: 0 8px 24px rgba(140, 149, 159, 0.2);
+        padding: 14px 18px;
+        z-index: 200;
+    }
+
+    .page-view-dir-toc .toc ul {
+        list-style: none;
+        padding-left: 12px;
+        margin: 0;
+    }
+
+    .page-view-dir-toc .toc li {
+        margin-bottom: 6px;
+        line-height: 1.5;
+        font-size: 13px;
+    }
+
+    .page-view-dir-toc .toc a {
+        color: #57606a;
+        text-decoration: none;
+    }
+
+    .page-view-dir-toc .toc a:hover {
+        color: #0969da;
+        text-decoration: underline;
+    }
+
+    @media (max-width: 768px) {
+        .view-doc-header {
+            flex-direction: column;
+            padding: 20px;
+        }
+        .view-doc-body {
+            padding: 24px 20px;
+        }
     }
 </style>
 
-<div class="container-fluid">
-    <div class="row">{{$pageContent := .page_content}}{{$document := .document}}{{$parentDocuments := .parent_documents}}
+{{$pageContent := .page_content}}{{$document := .document}}{{$parentDocuments := .parent_documents}}
+{{$createUser := .create_user}}{{$editUser := .edit_user}}{{$collectionId := .collection_id}}{{$space := .space}}
 
-        <div class="col-md-12">{{$createUser := .create_user}}{{$editUser := .edit_user}}{{$collectionId := .collection_id}}{{$space := .space}}
-            <div class="panel-body">
-                <div class="row">
-                    <div class="col-md-8">
-                        <h3 class="view-page-title">{{$document.name}}</h3>
-                        <p class="view-page-path">
-                            <i class="fa fa-folder fa-fw"></i>
-                            {{range $parentDocument := $parentDocuments}}
-                                {{if eq $parentDocument.parent_id "0"}}
-                                    <strong><a class="text text-info" target="_parent" href="/document/index?document_id={{$parentDocument.document_id}}">{{$parentDocument.name}}</a></strong>
-                                {{else}}
-                                    <strong> / <a target="_parent" href="/document/index?document_id={{$parentDocument.document_id}}">{{$parentDocument.name}}</a></strong>
-                                {{end}}
-                            {{end}}
-                        </p>
-                        <p class="view-page-time">
-                            <i class="fa fa-calendar fa-fw"></i>
-                            被
-                            {{if eq $createUser.user_id $.login_user_id}}
-                                <a class="text text-info" href="/system/main/index" target="_parent">{{$createUser.username}}（{{$createUser.given_name}}）</a>
+<div class="view-doc-container">
+    <div class="view-doc-card">
+        <!-- 顶部元信息与操作栏 -->
+        <div class="view-doc-header">
+            <div class="doc-header-main">
+                <h1 class="doc-main-title">{{$document.name}}</h1>
+                <div class="doc-meta-row">
+                    <span class="meta-item">
+                        <i class="fa fa-folder-open-o"></i>
+                        {{range $parentDocument := $parentDocuments}}
+                            {{if eq $parentDocument.parent_id "0"}}
+                                <strong><a target="_parent" href="/document/index?document_id={{$parentDocument.document_id}}">{{$parentDocument.name}}</a></strong>
                             {{else}}
-                                <a class="text text-info" href="/user/info?user_id={{$createUser.user_id}}"> {{$createUser.username}}（{{$createUser.given_name}}） </a>
+                                <strong> / <a target="_parent" href="/document/index?document_id={{$parentDocument.document_id}}">{{$parentDocument.name}}</a></strong>
                             {{end}}
-                            创建于 {{dateFormat $document.create_time "Y/m/d H:i:s"}} ， 被
-                            {{if eq $editUser.user_id $.login_user_id}}
-                                <a class="text text-info" href="/system/main/index" target="_parent">{{$editUser.username}}（{{$editUser.given_name}}）<span class="text text-primary"></span> </a>
-                            {{else}}
-                                <a class="text text-info" href="/user/info?user_id={{$editUser.user_id}}">{{$editUser.username}}（{{$editUser.given_name}}）<span class="text text-primary"></span> </a>
-                            {{end}}
-                            最后更新于 {{dateFormat $document.update_time "Y/m/d H:i:s"}}
-                            <a name="history" data-link="/document/history?document_id={{$document.document_id}}">&nbsp<i class="fa fa-history item">查看修改历史</i></a>
-                            <a onclick="Page.attachment({{$document.document_id}})">&nbsp<i class="fa fa-paperclip item"></i> 查看附件</a>
-                        </p>
-                    </div>
-                    <div class="col-md-4 text-right">
-                        <div class="btn-group" role="group" aria-label="...">
-                            {{if eq .is_editor true}}
-                                <a type="button" class="btn btn-default" href="/page/edit?document_id={{$document.document_id}}"><i class="glyphicon glyphicon-pencil"></i>&nbsp;编辑</a>
-                            {{end}}
-                            {{if eq $collectionId "0"}}
-                                <a type="button" class="btn btn-default" onclick="Common.ajaxSubmit('/collection/add?type=1&resource_id={{$document.document_id}}')"><i class="glyphicon glyphicon-star-empty"></i>&nbsp;收藏</a>
-                            {{else}}
-                                <a type="button" class="btn btn-default" onclick="Common.ajaxSubmit('/collection/cancel?collection_id={{$collectionId}}')"><i class="glyphicon glyphicon-star"></i>&nbsp;取消</a>
-                            {{end}}
-                            {{if eq $space.is_share "1"}}
-                                <a type="button" class="btn btn-default" name="share" href="/page/display?document_id={{$document.document_id}}" target="_blank"><i class="glyphicon glyphicon-share-alt"></i>&nbsp;分享</a>
-                            {{end}}
-                            {{if eq $space.is_export "1"}}
-                                <button type="button" class="btn btn-default" data-toggle="web-popover" data-placement="bottom"><i class="glyphicon glyphicon-export"></i>&nbsp;导出</button>
-                                <div class="webui-popover-content">
-                                    <ul class="dropdown-menu webui-popover-menu">
-                                        <li><a href="/page/export?document_id={{$document.document_id}}&output=markdown"><span class="fa fa-file-text"></span> Markdown</a></li>
-                                    </ul>
-                                </div>
-                            {{end}}
-                        </div>
-                    </div>
+                        {{end}}
+                    </span>
+                    <span class="meta-divider">·</span>
+                    <span class="meta-item">
+                        <i class="fa fa-calendar-o"></i>
+                        {{if eq $createUser.user_id $.login_user_id}}
+                            <a href="/system/main/index" target="_parent">{{$createUser.username}}（{{$createUser.given_name}}）</a>
+                        {{else}}
+                            <a href="/user/info?user_id={{$createUser.user_id}}">{{$createUser.username}}（{{$createUser.given_name}}）</a>
+                        {{end}}
+                        创建于 {{dateFormat $document.create_time "Y-m-d H:i"}}
+                    </span>
+                    <span class="meta-divider">·</span>
+                    <span class="meta-item">
+                        <i class="fa fa-clock-o"></i>
+                        {{if eq $editUser.user_id $.login_user_id}}
+                            <a href="/system/main/index" target="_parent">{{$editUser.username}}（{{$editUser.given_name}}）</a>
+                        {{else}}
+                            <a href="/user/info?user_id={{$editUser.user_id}}">{{$editUser.username}}（{{$editUser.given_name}}）</a>
+                        {{end}}
+                        更新于 {{dateFormat $document.update_time "Y-m-d H:i"}}
+                    </span>
+                    <span class="meta-divider">·</span>
+                    <a class="meta-action-link" name="history" data-link="/document/history?document_id={{$document.document_id}}">
+                        <i class="fa fa-history"></i> 查看历史
+                    </a>
+                    <a class="meta-action-link" onclick="Page.attachment({{$document.document_id}})">
+                        <i class="fa fa-paperclip"></i> 附件
+                    </a>
                 </div>
-                <hr style="margin: 0">
             </div>
-            <div class="panel-body md-view-box">
-                <div class="dir-preview-box">
-                    <div class="dir-preview-btn">
-                        展开目录
-                    </div>
-                    <div class="page-view-dir-toc" id="page-view-dir-toc">
 
+            <!-- 右侧快捷操作按钮 -->
+            <div class="doc-header-actions">
+                {{if eq .is_editor true}}
+                    <a class="doc-action-btn btn-primary-action" href="/page/edit?document_id={{$document.document_id}}">
+                        <i class="glyphicon glyphicon-pencil"></i> 编辑
+                    </a>
+                {{end}}
+                {{if eq $collectionId "0"}}
+                    <a class="doc-action-btn" onclick="Common.ajaxSubmit('/collection/add?type=1&resource_id={{$document.document_id}}')">
+                        <i class="glyphicon glyphicon-star-empty"></i> 收藏
+                    </a>
+                {{else}}
+                    <a class="doc-action-btn" onclick="Common.ajaxSubmit('/collection/cancel?collection_id={{$collectionId}}')">
+                        <i class="glyphicon glyphicon-star"></i> 取消收藏
+                    </a>
+                {{end}}
+                {{if eq $space.is_share "1"}}
+                    <a class="doc-action-btn" name="share" href="/page/display?document_id={{$document.document_id}}" target="_blank">
+                        <i class="glyphicon glyphicon-share-alt"></i> 分享
+                    </a>
+                {{end}}
+                {{if eq $space.is_export "1"}}
+                    <button type="button" class="doc-action-btn" data-toggle="web-popover" data-placement="bottom">
+                        <i class="glyphicon glyphicon-export"></i> 导出
+                    </button>
+                    <div class="webui-popover-content">
+                        <ul class="dropdown-menu webui-popover-menu">
+                            <li><a href="/page/export?document_id={{$document.document_id}}&output=markdown"><span class="fa fa-file-text"></span> Markdown</a></li>
+                        </ul>
                     </div>
-                </div>
-                <div id="document_page_view" class="preview-content">
-                    <textarea id="raw_markdown_content" style="display:none;">{{$pageContent}}</textarea>
-                </div>
+                {{end}}
+            </div>
+        </div>
+
+        <!-- 正文区域 -->
+        <div class="view-doc-body">
+            <div class="dir-preview-box">
+                <button type="button" class="dir-preview-btn">
+                    <i class="fa fa-list-ul"></i> 展开目录
+                </button>
+                <div class="page-view-dir-toc" id="page-view-dir-toc"></div>
+            </div>
+
+            <div id="document_page_view" class="preview-content">
+                <textarea id="raw_markdown_content" style="display:none;">{{$pageContent}}</textarea>
             </div>
         </div>
     </div>
@@ -160,7 +387,7 @@
             } else {
                 dirPreviewBox.css({
                     position: "absolute",
-                    top: "0"
+                    top: "20px"
                 });
             }
         };
@@ -168,16 +395,11 @@
         // 目录显示与隐藏
         $(".dir-preview-btn").click(function () {
             var pageViewDirToc = $(".page-view-dir-toc");
-            if (this.innerText === "展开目录") {
-                this.innerText = "隐藏目录";
+            if (pageViewDirToc.is(":hidden")) {
+                $(this).html('<i class="fa fa-list-ul"></i> 隐藏目录');
                 pageViewDirToc.show();
-                pageViewDirToc.css({
-                    position: "absolute",
-                    top: "25px",
-                    right: 0
-                });
             } else {
-                this.innerText = "展开目录";
+                $(this).html('<i class="fa fa-list-ul"></i> 展开目录');
                 pageViewDirToc.hide();
             }
         });

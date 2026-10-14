@@ -3,59 +3,211 @@
 <link rel="stylesheet" href="/static/plugins/markdown-editor/css/editor.css">
 
 <style>
+    html, body {
+        background-color: #f6f8fa !important;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "WenQuanYi Micro Hei", sans-serif !important;
+        color: #1f2328 !important;
+        line-height: 1.75 !important;
+        overflow-y: auto !important;
+        height: auto !important;
+        min-height: 100% !important;
+    }
+
+    #frame-body {
+        background-color: #f6f8fa !important;
+        padding-top: 0 !important;
+    }
+
+    .share-doc-container {
+        max-width: 1000px;
+        margin: 32px auto 80px auto;
+        padding: 0 16px;
+        position: relative;
+    }
+
+    .share-doc-card {
+        background: #ffffff;
+        border: 1px solid #e1e4e8;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+        overflow: hidden;
+        text-align: left !important;
+    }
+
+    .share-doc-header {
+        padding: 32px 48px 24px 48px;
+        border-bottom: 1px solid #eaecef;
+        background: #fafbfc;
+        text-align: left !important;
+    }
+
+    .share-doc-title {
+        margin: 0 0 12px 0;
+        font-size: 26px;
+        font-weight: 700;
+        color: #1f2328;
+        line-height: 1.35;
+        text-align: left !important;
+    }
+
+    .share-doc-meta {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 10px;
+        font-size: 13px;
+        color: #656d76;
+        text-align: left !important;
+    }
+
+    .share-meta-item {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .share-meta-dot {
+        color: #d0d7de;
+    }
+
+    .share-doc-body {
+        padding: 36px 48px 60px 48px;
+        text-align: left !important;
+    }
+
     #document_content_body.preview-content {
-        padding: 20px 20px 40px 20px;
+        padding: 0 !important;
         min-height: 400px;
-        background: #fff;
-        font-size: 15px;
+        background: transparent !important;
+        text-align: left !important;
+    }
+
+    /* 悬浮分享面板 */
+    .share-floating-panel {
+        position: fixed;
+        top: 140px;
+        right: calc(50% - 500px - 140px);
+        width: 120px;
+        background: #ffffff;
+        border: 1px solid #e1e4e8;
+        border-radius: 10px;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+        padding: 12px 10px;
+        text-align: center;
+        z-index: 1000;
+        transition: opacity 0.2s;
+    }
+
+    .share-floating-label {
+        font-size: 12px;
+        font-weight: 600;
+        color: #57606a;
+        margin-bottom: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+    }
+
+    #document-qrcode {
+        display: flex;
+        justify-content: center;
+        margin: 4px 0 8px 0;
+    }
+
+    #document-qrcode canvas, #document-qrcode img {
+        border-radius: 4px;
+    }
+
+    .share-floating-tip {
+        font-size: 11px;
+        color: #8c959f;
+        margin: 0;
+    }
+
+    .share-footer {
+        text-align: center;
+        padding: 24px 0;
+        font-size: 13px;
+        color: #8c959f;
+    }
+
+    .share-footer a {
+        color: #57606a;
+        text-decoration: none;
+    }
+
+    .share-footer a:hover {
+        color: #0969da;
+        text-decoration: underline;
+    }
+
+    @media (max-width: 1300px) {
+        .share-floating-panel {
+            position: static;
+            width: 100%;
+            margin-top: 24px;
+            box-shadow: none;
+        }
+        .share-doc-header, .share-doc-body {
+            padding: 24px 20px;
+        }
     }
 </style>
 
-<div class="container">{{$pageContent := .page_content}}{{$document := .document}}{{$parentDocuments := .parent_documents}}
-    <div class="row center">{{$createUser := .create_user}}{{$editUser := .edit_user}}
-        <div class="col-md-1"></div>
-        <div class="col-md-10">
-            <div class="panel panel-body">
-                <div id="document_page_view">
-                    <h3 class="view-page-title"><i class="fa fa-file-word-o"></i> {{$document.name}}</h3>
-                    <p class="view-page-path"><i class="fa fa-folder fa-fw"></i>
+{{$pageContent := .page_content}}{{$document := .document}}{{$parentDocuments := .parent_documents}}
+{{$createUser := .create_user}}{{$editUser := .edit_user}}
+
+<div class="share-doc-container">
+    <div class="share-doc-card">
+        <!-- 头部标题与元信息 -->
+        <div class="share-doc-header">
+            <h1 class="share-doc-title"><i class="fa fa-file-word-o" style="color: #2563eb; margin-right: 6px;"></i>{{$document.name}}</h1>
+            <div class="share-doc-meta">
+                <span class="share-meta-item">
+                    <i class="fa fa-folder-open-o"></i>
                     {{range $parentDocument := $parentDocuments}}
-                    {{if eq $parentDocument.parent_id "0"}}
-                        {{$parentDocument.name}}
-                    {{else}}
-                        / {{$parentDocument.name}}
+                        {{if eq $parentDocument.parent_id "0"}}
+                            {{$parentDocument.name}}
+                        {{else}}
+                            / {{$parentDocument.name}}
+                        {{end}}
                     {{end}}
-                    {{end}}
-                    </p>
-                    <p class="view-page-time">
-                        <i class="fa fa-newspaper-o fa-fw"></i>
-                        创建于 {{dateFormat $document.create_time "Y/m/d H:i:s"}} By  {{$createUser.username}}（{{$createUser.given_name}}）
-                    </p>
-                    <p class="view-page-time">
-                        <i class="fa fa-edit fa-fw"></i>
-                        修改于 {{dateFormat $document.update_time "Y/m/d H:i:s"}} By  {{$editUser.username}}（{{$editUser.given_name}}）
-                    </p>
-                    <hr style="margin: 0">
-                    <textarea id="raw_markdown_content" style="display:none;">{{$pageContent}}</textarea>
-                    <div id="document_content_body" class="preview-content"></div>
-                </div>
-            </div>
-            <div class="panel panel-body">
-                <div class="text-center">
-                    © {{.copyright}}
-                    &nbsp;<i class="glyphicon glyphicon-hand-right"></i>
-                    <a target="_blank" href="https://github.com/phachon/mm-wiki">Powered by MM Wiki {{.version}}</a>
-                </div>
+                </span>
+                <span class="share-meta-dot">·</span>
+                <span class="share-meta-item">
+                    <i class="fa fa-user-o"></i>
+                    创建于 {{dateFormat $document.create_time "Y-m-d H:i"}} By {{$createUser.username}}（{{$createUser.given_name}}）
+                </span>
+                <span class="share-meta-dot">·</span>
+                <span class="share-meta-item">
+                    <i class="fa fa-clock-o"></i>
+                    更新于 {{dateFormat $document.update_time "Y-m-d H:i"}} By {{$editUser.username}}（{{$editUser.given_name}}）
+                </span>
             </div>
         </div>
-        <div class="col-md-1" id="display_section">
-            <div class="share-popup center">
-                <label> 分享到 <i class="fa fa-wechat"></i> <i class="fa fa-qq"></i></label>
-                <div id="document-qrcode"></div>
-                <label>打开微信“扫一扫”</label>
-            </div>
+
+        <!-- 正文区域 -->
+        <div class="share-doc-body">
+            <textarea id="raw_markdown_content" style="display:none;">{{$pageContent}}</textarea>
+            <div id="document_content_body" class="preview-content"></div>
         </div>
     </div>
+
+    <!-- 浮动微信分享扫一扫 -->
+    <div class="share-floating-panel" id="display_section">
+        <div class="share-floating-label">
+            <i class="fa fa-wechat" style="color: #07c160;"></i> 扫码阅读
+        </div>
+        <div id="document-qrcode"></div>
+        <p class="share-floating-tip">微信扫一扫分享</p>
+    </div>
+
+    <!-- 底部版权 -->
+    <footer class="share-footer">
+        © {{.copyright}} &nbsp;·&nbsp;
+        <a target="_blank" href="https://github.com/phachon/mm-wiki">Powered by MM-Wiki {{.version}}</a>
+    </footer>
 </div>
 
 <!-- 图片及 Mermaid SVG 全屏大图预览 -->
@@ -94,8 +246,8 @@
         });
 
         $('#document-qrcode').qrcode({
-            width: 120,
-            height: 120,
+            width: 96,
+            height: 96,
             text: window.location.href
         });
     });
