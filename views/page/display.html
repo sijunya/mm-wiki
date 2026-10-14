@@ -250,10 +250,121 @@
             width: 100%;
         }
     }
+
+    /* 现代多格式导出下拉菜单样式 */
+    .modern-export-dropdown {
+        min-width: 280px;
+        padding: 8px 0;
+        border-radius: 8px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12), 0 2px 6px rgba(0, 0, 0, 0.08);
+        border: 1px solid #d0d7de;
+        margin-top: 6px;
+    }
+    .modern-export-dropdown .dropdown-header {
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #8c959f;
+        padding: 6px 18px 4px 18px;
+    }
+    .modern-export-dropdown > li > a {
+        padding: 8px 18px;
+        color: #24292e;
+        display: block;
+        transition: background-color 0.15s ease;
+        text-decoration: none !important;
+    }
+    .modern-export-dropdown > li > a:hover {
+        background-color: #f3f4f6;
+        color: #0969da;
+    }
+    .modern-export-dropdown .export-desc {
+        display: block;
+        font-size: 12px;
+        color: #656d76;
+        margin-top: 2px;
+        padding-left: 20px;
+        font-weight: normal;
+    }
+    .modern-export-dropdown > li > a i {
+        width: 16px;
+        text-align: center;
+        margin-right: 4px;
+    }
+
+    /* 打印与 PDF 另存净化排版 */
+    @media print {
+        @page {
+            margin: 15mm 12mm 15mm 12mm;
+            size: auto;
+        }
+        html, body, #frame-body, .share-doc-container, .share-doc-card {
+            background-color: #ffffff !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            box-shadow: none !important;
+            border: none !important;
+            overflow: visible !important;
+        }
+        .share-doc-actions,
+        .share-floating-panel,
+        .share-qrcode-modal,
+        .share-footer,
+        .dropdown-menu,
+        .doc-action-btn {
+            display: none !important;
+        }
+        .share-doc-header {
+            border-bottom: 2px solid #333 !important;
+            background: transparent !important;
+            padding: 0 0 12px 0 !important;
+        }
+        .share-doc-body {
+            padding: 20px 0 !important;
+        }
+        .share-doc-title {
+            font-size: 24pt !important;
+            color: #000000 !important;
+        }
+        .share-doc-meta {
+            font-size: 9pt !important;
+            color: #555555 !important;
+        }
+        #document_content_body {
+            color: #111111 !important;
+            font-size: 11pt !important;
+            line-height: 1.6 !important;
+        }
+        #document_content_body pre,
+        #document_content_body table,
+        #document_content_body img,
+        #document_content_body blockquote {
+            page-break-inside: avoid;
+        }
+        #document_content_body h1,
+        #document_content_body h2,
+        #document_content_body h3,
+        #document_content_body h4 {
+            page-break-after: avoid;
+            color: #000000 !important;
+        }
+        #document_content_body table {
+            border-collapse: collapse !important;
+            width: 100% !important;
+        }
+        #document_content_body table th,
+        #document_content_body table td {
+            border: 1px solid #ccc !important;
+            padding: 6px 10px !important;
+        }
+    }
 </style>
 
 {{$pageContent := .page_content}}{{$document := .document}}{{$parentDocuments := .parent_documents}}
-{{$createUser := .create_user}}{{$editUser := .edit_user}}
+{{$createUser := .create_user}}{{$editUser := .edit_user}}{{$space := .space}}
 
 <div class="share-doc-container">
     <div class="share-doc-card">
@@ -268,6 +379,46 @@
                     <button type="button" class="doc-action-btn" id="share-qrcode-toggle-btn" title="显示手机扫码分享二维码">
                         <i class="fa fa-qrcode"></i> <span>扫码分享</span>
                     </button>
+                    {{if eq $space.is_export "1"}}
+                    <div class="dropdown" style="display: inline-block;">
+                        <button type="button" class="doc-action-btn dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" title="导出多格式文档或打印">
+                            <i class="glyphicon glyphicon-export"></i> 导出 <span class="caret"></span>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-right modern-export-dropdown">
+                            <li class="dropdown-header"><i class="fa fa-download"></i> 导出本地文件</li>
+                            <li>
+                                <a href="/page/export?document_id={{$document.document_id}}&output=md">
+                                    <i class="fa fa-file-text-o text-primary"></i> <strong>Markdown (.md)</strong>
+                                    <span class="export-desc">直接导出原生 Markdown 源文件</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="/page/export?document_id={{$document.document_id}}&output=html" target="_blank">
+                                    <i class="fa fa-file-code-o text-success"></i> <strong>离线网页 (.html)</strong>
+                                    <span class="export-desc">独立离线单文件，含完整样式与排版</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="/page/export?document_id={{$document.document_id}}&output=zip">
+                                    <i class="fa fa-file-archive-o text-warning"></i> <strong>完整归档包 (.zip)</strong>
+                                    <span class="export-desc">打包 Markdown 原文与全部关联附件</span>
+                                </a>
+                            </li>
+                            <li role="separator" class="divider"></li>
+                            <li class="dropdown-header"><i class="fa fa-print"></i> 打印与交付</li>
+                            <li>
+                                <a href="javascript:void(0)" onclick="window.print()">
+                                    <i class="fa fa-print text-info"></i> <strong>打印 / 另存为 PDF</strong>
+                                    <span class="export-desc">呼起系统打印，排版净化直出 PDF</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                    {{else}}
+                    <button type="button" class="doc-action-btn" onclick="window.print()" title="打印文档或另存为 PDF">
+                        <i class="fa fa-print"></i> <span>打印</span>
+                    </button>
+                    {{end}}
                 </div>
             </div>
             <div class="share-doc-meta">

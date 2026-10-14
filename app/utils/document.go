@@ -4,11 +4,16 @@ import (
 	"bytes"
 	"compress/gzip"
 	"fmt"
+	"html"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 	"sync"
+	"time"
+
+	"gopkg.in/russross/blackfriday.v2"
 )
 
 var Document = NewDocument("./data", "./data/markdowns")
@@ -305,4 +310,284 @@ func (d *document) GetSnapshotFileSize(spaceId string, documentId string, logDoc
 	}
 	return 0
 }
+
+// GenerateStandaloneHTML converts markdown content into an offline standalone single-page HTML file
+func (d *document) GenerateStandaloneHTML(title string, spaceName string, author string, updateTime string, markdownContent string) string {
+	renderedHtml := string(blackfriday.Run([]byte(markdownContent)))
+	safeTitle := html.EscapeString(title)
+	safeSpace := html.EscapeString(spaceName)
+	safeAuthor := html.EscapeString(author)
+	nowStr := time.Now().Format("2006-01-02 15:04:05")
+
+	authorHtml := ""
+	if safeAuthor != "" {
+		authorHtml = fmt.Sprintf(`<span class="wiki-meta-item">👤 作者：%s</span>`, safeAuthor)
+	}
+
+	htmlTemplate := `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{SAFE_TITLE}} - MM-Wiki 离线文档</title>
+    <style>
+        * { box-sizing: border-box; }
+        html, body {
+            margin: 0;
+            padding: 0;
+            background-color: #f6f8fa;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "WenQuanYi Micro Hei", Roboto, sans-serif;
+            color: #1f2328;
+            line-height: 1.7;
+        }
+        .wiki-standalone-topbar {
+            background-color: #ffffff;
+            border-bottom: 1px solid #d0d7de;
+            padding: 12px 28px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            width: 100%;
+        }
+        .wiki-brand {
+            font-size: 14px;
+            font-weight: 600;
+            color: #57606a;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .wiki-brand-tag {
+            background: #e1f0ff;
+            color: #0969da;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .wiki-actions {
+            display: flex;
+            gap: 10px;
+        }
+        .wiki-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            font-size: 13px;
+            font-weight: 500;
+            background-color: #ffffff;
+            border: 1px solid #d0d7de;
+            border-radius: 6px;
+            cursor: pointer;
+            color: #24292e;
+            text-decoration: none;
+            transition: all 0.15s ease;
+        }
+        .wiki-btn:hover {
+            background-color: #f3f4f6;
+            border-color: #8c959f;
+        }
+        .wiki-container {
+            max-width: 960px;
+            margin: 32px auto 80px auto;
+            background: #ffffff;
+            border: 1px solid #d0d7de;
+            border-radius: 10px;
+            padding: 48px 56px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.04);
+            box-sizing: border-box;
+        }
+        .wiki-header {
+            border-bottom: 1px solid #d8dee4;
+            padding-bottom: 24px;
+            margin-bottom: 32px;
+        }
+        .wiki-title {
+            font-size: 30px;
+            font-weight: 700;
+            color: #1f2328;
+            margin: 0 0 16px 0;
+            line-height: 1.3;
+        }
+        .wiki-meta {
+            font-size: 13px;
+            color: #57606a;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+        .wiki-meta-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .markdown-body {
+            font-size: 15px;
+            line-height: 1.75;
+            word-wrap: break-word;
+        }
+        .markdown-body h1, .markdown-body h2, .markdown-body h3,
+        .markdown-body h4, .markdown-body h5, .markdown-body h6 {
+            margin-top: 24px;
+            margin-bottom: 16px;
+            font-weight: 600;
+            line-height: 1.35;
+            color: #1f2328;
+        }
+        .markdown-body h1 { font-size: 24px; padding-bottom: 8px; border-bottom: 1px solid #d8dee4; }
+        .markdown-body h2 { font-size: 20px; padding-bottom: 6px; border-bottom: 1px solid #d8dee4; }
+        .markdown-body h3 { font-size: 17px; }
+        .markdown-body p, .markdown-body blockquote, .markdown-body ul, .markdown-body ol,
+        .markdown-body dl, .markdown-body table, .markdown-body pre {
+            margin-top: 0;
+            margin-bottom: 16px;
+        }
+        .markdown-body blockquote {
+            padding: 8px 16px;
+            color: #57606a;
+            border-left: 4px solid #d0d7de;
+            background-color: #f6f8fa;
+            border-radius: 0 4px 4px 0;
+        }
+        .markdown-body code {
+            padding: 2px 6px;
+            font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+            font-size: 85%;
+            background-color: #eff1f3;
+            border-radius: 4px;
+            color: #24292e;
+        }
+        .markdown-body pre {
+            padding: 16px;
+            overflow: auto;
+            font-size: 85%;
+            line-height: 1.45;
+            background-color: #f6f8fa;
+            border-radius: 6px;
+            border: 1px solid #d0d7de;
+        }
+        .markdown-body pre code {
+            padding: 0;
+            background-color: transparent;
+            border: 0;
+            word-break: normal;
+            white-space: pre;
+        }
+        .markdown-body table {
+            border-spacing: 0;
+            border-collapse: collapse;
+            display: table;
+            width: 100%;
+            overflow: auto;
+            margin-bottom: 16px;
+        }
+        .markdown-body table th, .markdown-body table td {
+            padding: 8px 14px;
+            border: 1px solid #d0d7de;
+        }
+        .markdown-body table th {
+            font-weight: 600;
+            background-color: #f6f8fa;
+        }
+        .markdown-body table tr:nth-child(2n) {
+            background-color: #fbfcfd;
+        }
+        .markdown-body img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 4px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+        }
+        .markdown-body hr {
+            height: 2px;
+            padding: 0;
+            margin: 24px 0;
+            background-color: #d8dee4;
+            border: 0;
+        }
+        .wiki-footer {
+            margin-top: 48px;
+            padding-top: 16px;
+            border-top: 1px solid #d8dee4;
+            font-size: 12px;
+            color: #8c959f;
+            text-align: center;
+        }
+        @media (max-width: 768px) {
+            .wiki-container {
+                margin: 0;
+                padding: 24px 18px;
+                border-radius: 0;
+                border: none;
+            }
+        }
+        @media print {
+            body, .wiki-container {
+                background: #ffffff !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                border: none !important;
+                box-shadow: none !important;
+                max-width: 100% !important;
+            }
+            .no-print, .wiki-standalone-topbar {
+                display: none !important;
+            }
+            .wiki-header {
+                border-bottom: 2px solid #000 !important;
+            }
+            .markdown-body pre, .markdown-body table, .markdown-body blockquote, .markdown-body img {
+                page-break-inside: avoid;
+            }
+            .markdown-body h1, .markdown-body h2, .markdown-body h3, .markdown-body h4 {
+                page-break-after: avoid;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="wiki-standalone-topbar no-print">
+        <div class="wiki-brand">
+            <span>MM-Wiki 离线文档</span>
+            <span class="wiki-brand-tag">{{SAFE_SPACE}}</span>
+        </div>
+        <div class="wiki-actions">
+            <button onclick="window.print()" class="wiki-btn">
+                <span>🖨️ 打印 / 另存为 PDF</span>
+            </button>
+        </div>
+    </div>
+    <div class="wiki-container">
+        <header class="wiki-header">
+            <h1 class="wiki-title">{{SAFE_TITLE}}</h1>
+            <div class="wiki-meta">
+                <span class="wiki-meta-item">📁 空间：{{SAFE_SPACE}}</span>
+                {{AUTHOR_HTML}}
+                <span class="wiki-meta-item">🕒 导出时间：{{NOW_STR}}</span>
+            </div>
+        </header>
+        <article class="markdown-body">
+            {{RENDERED_HTML}}
+        </article>
+        <footer class="wiki-footer no-print">
+            本文档由 MM-Wiki 知识库系统自动生成导出
+        </footer>
+    </div>
+</body>
+</html>`
+
+	res := strings.Replace(htmlTemplate, "{{SAFE_TITLE}}", safeTitle, -1)
+	res = strings.Replace(res, "{{SAFE_SPACE}}", safeSpace, -1)
+	res = strings.Replace(res, "{{AUTHOR_HTML}}", authorHtml, 1)
+	res = strings.Replace(res, "{{NOW_STR}}", nowStr, 1)
+	res = strings.Replace(res, "{{RENDERED_HTML}}", renderedHtml, 1)
+
+	return res
+}
+
 

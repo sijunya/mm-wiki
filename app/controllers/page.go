@@ -8,6 +8,7 @@ import (
 	"github.com/chaiyd/mm-wiki/app/models"
 	"github.com/chaiyd/mm-wiki/app/services"
 	"github.com/chaiyd/mm-wiki/app/utils"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -363,6 +364,7 @@ func (this *PageController) Display() {
 		}
 	}
 
+	this.Data["space"] = space
 	this.Data["create_user"] = createUser
 	this.Data["edit_user"] = editUser
 	this.Data["document"] = document
@@ -419,10 +421,66 @@ func (this *PageController) Export() {
 		this.ViewError("父文档不存在！")
 	}
 
-	packFiles := []*utils.CompressFileInfo{}
-
 	absPageFile := utils.Document.GetAbsPageFileByPageFile(pageFile)
-	// pack document file
+
+	// Clean and safe filename
+	safeDocName := strings.Map(func(r rune) rune {
+		if strings.ContainsRune(`/\\:*?"<>|`, r) {
+			return '_'
+		}
+		return r
+	}, document["name"])
+	safeDocName = strings.TrimSpace(safeDocName)
+	if safeDocName == "" {
+		safeDocName = "document"
+	}
+
+	output := strings.ToLower(strings.TrimSpace(this.GetString("output", "md")))
+
+	// 1. Direct Markdown export (.md) - no zip packaging
+	if output == "md" || output == "markdown" {
+		if exists, _ := utils.File.PathIsExists(absPageFile); !exists {
+			this.ViewError("文档内容文件不存在！")
+		}
+		this.Ctx.Output.Download(absPageFile, safeDocName+".md")
+		return
+	}
+
+	// 2. Standalone Offline HTML export (.html)
+	if output == "html" {
+		content, err := utils.Document.GetContentByPageFile(pageFile)
+		if err != nil {
+			this.ErrorLog("获取文档内容失败：" + err.Error())
+			this.ViewError("获取文档内容失败！")
+		}
+		createUser, _ := models.UserModel.GetUserByUserId(document["create_user_id"])
+		author := ""
+		if len(createUser) > 0 {
+			author = createUser["given_name"]
+			if author == "" {
+				author = createUser["username"]
+			}
+		}
+		htmlContent := utils.Document.GenerateStandaloneHTML(
+			document["name"],
+			space["name"],
+			author,
+			document["update_time"],
+			content,
+		)
+		destHtml := fmt.Sprintf("%s/mm_wiki/%s.html", os.TempDir(), safeDocName)
+		os.MkdirAll(filepath.Dir(destHtml), 0755)
+		err = ioutil.WriteFile(destHtml, []byte(htmlContent), 0644)
+		if err != nil {
+			this.ErrorLog("写入临时HTML文件失败：" + err.Error())
+			this.ViewError("导出HTML文档失败！")
+		}
+		this.Ctx.Output.Download(destHtml, safeDocName+".html")
+		return
+	}
+
+	// 3. Complete bundle ZIP export (.zip) with attachments
+	packFiles := []*utils.CompressFileInfo{}
 	packFiles = append(packFiles, &utils.CompressFileInfo{
 		File:       absPageFile,
 		PrefixPath: "",
@@ -446,14 +504,15 @@ func (this *PageController) Export() {
 		}
 		packFiles = append(packFiles, packFile)
 	}
-	var dest = fmt.Sprintf("%s/mm_wiki/%s.zip", os.TempDir(), document["name"])
+	var dest = fmt.Sprintf("%s/mm_wiki/%s.zip", os.TempDir(), safeDocName)
+	os.MkdirAll(filepath.Dir(dest), 0755)
 	err = utils.Zipx.PackFile(packFiles, dest)
 	if err != nil {
 		this.ErrorLog("导出文档附件失败：" + err.Error())
 		this.ViewError("导出文档失败！")
 	}
 
-	this.Ctx.Output.Download(dest, document["name"]+".zip")
+	this.Ctx.Output.Download(dest, safeDocName+".zip")
 }
 
 func sendEmail(documentId string, username string, comment string, url string) error {
