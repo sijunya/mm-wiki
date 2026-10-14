@@ -1,70 +1,117 @@
-<div class="container-fluid">{{$documents := .documents}}
-    <div class="panel panel-default">
-        <div class="panel-body">
-            <div class="row">
-                <form action="/main/search" method="get">
-                    <div class="col-md-3">
-                        <div class="input-group">
-                            <span class="input-group-addon"> 搜索方式</span>
-                            <select class="form-control" name="search_type">
-                                <option value="title" {{if eq $.search_type "title"}} selected="selected" {{end}}>文档标题</option>
-{{/*                                <option value="content" {{if eq $.search_type "content"}} selected="selected" {{end}}>文档内容</option>*/}}
-                            </select>
+<div class="container-fluid" style="padding: 16px 20px;">
+    {{$documents := .documents}}
+    {{$keyword := .keyword}}
+    <div class="search-panel" style="background: #ffffff; border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03); overflow: hidden;">
+        <!-- 顶部搜索栏 -->
+        <div style="padding: 18px 24px; border-bottom: 1px solid #f1f5f9; background: #fafafa;">
+            <form action="/main/search" method="get" style="margin: 0;">
+                <div style="display: flex; align-items: center; gap: 12px; flex-wrap: nowrap;">
+                    <div style="position: relative; flex: 1;">
+                        <i class="fa fa-search" style="position: absolute; left: 14px; top: 12px; color: #94a3b8; font-size: 15px; pointer-events: none;"></i>
+                        <input class="form-control" name="keyword" type="text" value="{{$keyword}}" placeholder="输入关键词搜索文档名称..." autofocus style="padding-left: 38px; padding-right: 36px; height: 40px; font-size: 14.5px; border-radius: 8px; border: 1px solid #cbd5e1; box-shadow: none; transition: all 0.2s ease;">
+                        {{if $keyword}}
+                        <a href="/main/search" style="position: absolute; right: 12px; top: 11px; color: #94a3b8; text-decoration: none; font-size: 14px; cursor: pointer;" title="清空搜索">
+                            <i class="fa fa-times-circle"></i>
+                        </a>
+                        {{end}}
+                    </div>
+                    <input type="hidden" name="search_type" value="title">
+                    <button type="submit" class="btn btn-primary" style="height: 40px; padding: 0 20px; font-size: 14px; font-weight: 500; border-radius: 8px; display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0;">
+                        <i class="fa fa-search"></i> 搜索
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- 结果展示区 -->
+        <div style="padding: 20px 24px; min-height: 340px;">
+            {{if and $keyword (gt .count 0)}}
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; padding-bottom: 10px; border-bottom: 1px solid #f1f5f9;">
+                    <span style="font-size: 13.5px; color: #64748b;">
+                        包含关键词 <strong style="color: #0f172a;">“{{$keyword}}”</strong> 的搜索结果
+                    </span>
+                    <span class="badge" style="background: #eff6ff; color: #2563eb; font-weight: 600; font-size: 12px; padding: 4px 10px; border-radius: 9999px;">
+                        共 {{.count}} 篇匹配文档
+                    </span>
+                </div>
+
+                <div class="search-result-list" style="display: flex; flex-direction: column; gap: 10px;">
+                    {{range $document := $documents}}
+                    <div class="search-result-card" style="padding: 14px 18px; border: 1px solid #f1f5f9; border-radius: 10px; background: #ffffff; transition: all 0.2s ease; display: flex; align-items: center; justify-content: space-between; gap: 16px;" onmouseover="this.style.borderColor='#cbd5e1'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.04)'; this.style.transform='translateY(-1px)';" onmouseout="this.style.borderColor='#f1f5f9'; this.style.boxShadow='none'; this.style.transform='none';">
+                        <div style="display: flex; align-items: center; gap: 14px; min-width: 0;">
+                            <div style="width: 38px; height: 38px; border-radius: 8px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; {{if eq $document.type "1"}}background: #eff6ff; color: #2563eb;{{else}}background: #fef3c7; color: #d97706;{{end}}">
+                                {{if eq $document.type "1"}}
+                                    <i class="fa fa-file-text-o" style="font-size: 17px;"></i>
+                                {{else}}
+                                    <i class="fa fa-folder-o" style="font-size: 17px;"></i>
+                                {{end}}
+                            </div>
+                            <div style="min-width: 0;">
+                                <a href="/document/index?document_id={{$document.document_id}}" target="_parent" class="search-title-link" style="font-size: 15px; font-weight: 600; color: #0f172a; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 580px;" onmouseover="this.style.color='#2563eb'" onmouseout="this.style.color='#0f172a'">
+                                    <span class="search-target-text">{{$document.name}}</span>
+                                    <i class="glyphicon glyphicon-new-window text-muted" style="font-size: 11px;"></i>
+                                </a>
+                                {{if $document.search_content}}
+                                <p class="search-content search-target-text" style="margin: 4px 0 0 0; font-size: 13px; color: #64748b; line-height: 1.4; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 580px;">{{$document.search_content}}</p>
+                                {{end}}
+                            </div>
+                        </div>
+
+                        <div style="flex-shrink: 0; text-align: right; font-size: 12.5px; color: #94a3b8; display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
+                            <span><i class="fa fa-clock-o"></i> {{dateFormat $document.update_time "Y-m-d H:i"}}</span>
+                            <span style="font-size: 11.5px; background: #f8fafc; padding: 2px 6px; border-radius: 4px; color: #64748b;">
+                                {{if eq $document.type "1"}}文档{{else}}目录{{end}}
+                            </span>
                         </div>
                     </div>
-                    <div class="col-md-9">
-                        <div class="input-group">
-                            <input class="form-control" name="keyword" type="text" value="{{.keyword}}" placeholder="请输入搜索关键字...">
-                            <span class="input-group-btn">
-				              <button type="submit" class="btn btn-primary"><i class="glyphicon glyphicon-search"></i></button>
-				            </span>
-                        </div>
+                    {{end}}
+                </div>
+            {{else if and $keyword (eq .count 0)}}
+                <!-- 搜索无结果空状态 -->
+                <div style="text-align: center; padding: 48px 20px;">
+                    <div style="width: 64px; height: 64px; border-radius: 50%; background: #f1f5f9; color: #94a3b8; display: inline-flex; align-items: center; justify-content: center; font-size: 26px; margin-bottom: 16px;">
+                        <i class="fa fa-search-minus"></i>
                     </div>
-                </form>
-            </div>
-            <hr>
-            {{if eq .count 0}}
-                <div class="alert alert-info alert-dismissible fade in" role="alert" style="margin-bottom: 0">
-                    <p><i class="glyphicon glyphicon-volume-up"></i> 抱歉，暂时没有搜索到您想要的结果</p>
+                    <h4 style="font-size: 16px; font-weight: 600; color: #334155; margin-bottom: 8px;">未找到匹配的文档</h4>
+                    <p style="font-size: 13.5px; color: #94a3b8; max-width: 360px; margin: 0 auto 18px auto; line-height: 1.5;">
+                        没有找到与 “<strong style="color: #64748b;">{{$keyword}}</strong>” 相关的文档，请尝试：
+                    </p>
+                    <div style="display: inline-flex; flex-direction: column; gap: 6px; text-align: left; background: #f8fafc; padding: 12px 20px; border-radius: 8px; border: 1px solid #f1f5f9; font-size: 13px; color: #64748b;">
+                        <div>• 检查输入的文字是否有错别字</div>
+                        <div>• 尝试缩短或更换搜索关键字</div>
+                        <div>• 确认您是否拥有该文档所在空间的阅读权限</div>
+                    </div>
                 </div>
             {{else}}
-            <div class="row">
-                <div class="document-update">
-                    <ul>
-                    {{range $document := $documents}}
-                        <li>
-                            <div>
-                                <a href="/document/index?document_id={{$document.document_id}}" target="_parent" class="text text-info text-font-15">
-                                {{if eq $document.type "1"}}
-                                    <i class="fa fa-file-word-o"></i>
-                                {{else}}
-                                    <i class="fa fa-folder-o"></i>
-                                {{end}}
-                                {{$document.name}}</a>
-                            </div>
-                            <span class="text text-font-12 document-user-time"><i class="fa fa-calendar"></i>
-                    创建于 {{dateFormat $document.create_time "Y-m-d H:i:s"}}，修改于{{dateFormat $document.update_time "Y-m-d H:i:s"}}
-                            </span>
-                        </li>
-                        <hr>
-                        <p class="search-content">{{$document.search_content}}</p>
-                    {{end}}
-                    </ul>
+                <!-- 初始未搜索状态 -->
+                <div style="text-align: center; padding: 56px 20px;">
+                    <div style="width: 64px; height: 64px; border-radius: 50%; background: #eff6ff; color: #2563eb; display: inline-flex; align-items: center; justify-content: center; font-size: 26px; margin-bottom: 16px;">
+                        <i class="fa fa-keyboard-o"></i>
+                    </div>
+                    <h4 style="font-size: 16px; font-weight: 600; color: #1e293b; margin-bottom: 8px;">输入关键字检索文档</h4>
+                    <p style="font-size: 13.5px; color: #64748b; margin: 0;">支持在您有权限的所有空间内按标题快速查找知识库内容</p>
                 </div>
-            </div>
-            <div class="center">
-{{/*            {{template "paginator/default.html" .}}*/}}
-            </div>
             {{end}}
         </div>
     </div>
 </div>
+
+<style>
+mark {
+    background-color: #fef08a !important;
+    color: #854d0e !important;
+    padding: 1px 4px !important;
+    border-radius: 4px !important;
+    font-weight: 600 !important;
+}
+</style>
+
 <script type="text/javascript" src="/static/plugins/mark/mark.min.js"></script>
 <script type="text/javascript">
-    var keyword = {{.keyword}}
+    var keyword = {{.keyword}};
     if (keyword) {
-        var searchContent = document.querySelectorAll('.search-content');
-        var instance = new Mark(searchContent);
+        var targets = document.querySelectorAll('.search-target-text');
+        var instance = new Mark(targets);
         instance.mark(keyword);
     }
 </script>

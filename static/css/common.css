@@ -137,6 +137,41 @@ a:focus {
     background-color: #f8fafc !important;
 }
 
+/* Table Action Links */
+.table td a:not(.btn):not(.dropdown-toggle) {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin: 0 4px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    color: #2563eb;
+    font-size: 13px;
+    font-weight: 500;
+    text-decoration: none !important;
+    transition: all 0.15s ease;
+}
+
+.table td a:not(.btn):not(.dropdown-toggle):hover {
+    color: #1d4ed8;
+    background-color: #eff6ff;
+}
+
+.table td a.text-danger:not(.btn),
+.table td a[href*="delete"]:not(.btn) {
+    color: #ef4444 !important;
+}
+
+.table td a.text-danger:not(.btn):hover,
+.table td a[href*="delete"]:not(.btn):hover {
+    color: #dc2626 !important;
+    background-color: #fef2f2 !important;
+}
+
+.table td a:not(.btn):not(.dropdown-toggle) i {
+    font-size: 12px;
+}
+
 /* 表单输入控件 */
 .form-control {
     height: 36px;
