@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"github.com/chaiyd/mm-wiki/app/models"
+	"github.com/chaiyd/mm-wiki/app/services"
 	"strings"
 )
 
@@ -124,11 +125,14 @@ func (this *MainController) About() {
 	this.viewLayout("main/about", "default")
 }
 
-// 搜索，支持根据标题和内容搜索
+// 搜索，支持综合全文、标题、正文检索
 func (this *MainController) Search() {
 
 	keyword := strings.TrimSpace(this.GetString("keyword", ""))
-	searchType := this.GetString("search_type", "content")
+	searchType := strings.TrimSpace(this.GetString("search_type", "all"))
+	if searchType != "title" && searchType != "content" {
+		searchType = "all"
+	}
 
 	this.Data["search_type"] = searchType
 	this.Data["keyword"] = keyword
@@ -137,8 +141,7 @@ func (this *MainController) Search() {
 		this.viewLayout("main/search", "default")
 		return
 	}
-	var documents = []map[string]string{}
-	var err error
+
 	// 获取该用户有权限的空间
 	publicSpaces, err := models.SpaceModel.GetSpacesByVisitLevel(models.Space_VisitLevel_Public)
 	if err != nil {
@@ -150,63 +153,49 @@ func (this *MainController) Search() {
 		this.ErrorLog("搜索文档列表获取用户空间权限出错：" + err.Error())
 		this.ViewError("搜索文档错误！")
 	}
+	permittedSpaceIds := []string{}
 	spaceIdsMap := make(map[string]bool)
 	for _, publicSpace := range publicSpaces {
-		spaceIdsMap[publicSpace["space_id"]] = true
-	}
-	for _, spaceUser := range spaceUsers {
-		if _, ok := spaceIdsMap[spaceUser["space_id"]]; !ok {
-			spaceIdsMap[spaceUser["space_id"]] = true
+		spId := publicSpace["space_id"]
+		if !spaceIdsMap[spId] {
+			spaceIdsMap[spId] = true
+			permittedSpaceIds = append(permittedSpaceIds, spId)
 		}
 	}
-	searchDocContents := make(map[string]string)
-	// 默认根据内容搜索
-	// v0.2.1 下线全文搜索功能
-	searchType = "title"
-	//if searchType == "title" {
-	//	documents, err = models.DocumentModel.GetDocumentsByLikeName(keyword)
-	//} else {
-	//	searchRes := global.DocSearcher.SearchDoc(types.SearchReq{Text: keyword})
-	//	searchDocIds := []string{}
-	//	for _, searchDoc := range searchRes.Docs {
-	//		if len(searchDoc.TokenSnippetLocs) == 0 {
-	//			continue
-	//		}
-	//		docId := searchDoc.DocId
-	//		content := searchDoc.Content
-	//		locIndex := searchDoc.TokenSnippetLocs[0]
-	//		searchContent := utils.Misc.SubStrUnicodeBySubStrIndex(content, keyword, locIndex, 30, 30)
-	//		searchDocContents[docId] = searchContent
-	//		searchDocIds = append(searchDocIds, docId)
-	//	}
-	//	documents, err = models.DocumentModel.GetDocumentsByDocumentIds(searchDocIds)
-	//}
-	documents, err = models.DocumentModel.GetDocumentsByLikeName(keyword)
+	for _, spaceUser := range spaceUsers {
+		spId := spaceUser["space_id"]
+		if !spaceIdsMap[spId] {
+			spaceIdsMap[spId] = true
+			permittedSpaceIds = append(permittedSpaceIds, spId)
+		}
+	}
+
+	searchResults, err := services.SearchService.Search(keyword, searchType, permittedSpaceIds)
 	if err != nil {
 		this.ErrorLog("搜索文档出错：" + err.Error())
 		this.ViewError("搜索文档错误！")
 	}
-	// 过滤一下没权限的空间
-	realDocuments := []map[string]string{}
-	for _, document := range documents {
-		spaceId, _ := document["space_id"]
-		documentId, _ := document["document_id"]
-		if _, ok := spaceIdsMap[spaceId]; !ok {
-			continue
+
+	// 转换为模板兼容格式
+	documents := make([]map[string]string, 0, len(searchResults))
+	for _, res := range searchResults {
+		doc := map[string]string{
+			"document_id":    res.DocumentId,
+			"space_id":       res.SpaceId,
+			"space_name":     res.SpaceName,
+			"name":           res.Name,
+			"type":           res.Type,
+			"update_time":    res.UpdateTime,
+			"match_type":     res.MatchType,
+			"match_desc":     res.MatchDesc,
+			"search_content": res.Snippet,
 		}
-		if searchType != "title" {
-			searchContent, ok := searchDocContents[documentId]
-			if !ok || searchContent == "" {
-				continue
-			}
-			document["search_content"] = searchContent
-		}
-		realDocuments = append(realDocuments, document)
+		documents = append(documents, doc)
 	}
 
 	this.Data["search_type"] = searchType
 	this.Data["keyword"] = keyword
-	this.Data["documents"] = realDocuments
-	this.Data["count"] = len(realDocuments)
+	this.Data["documents"] = documents
+	this.Data["count"] = len(documents)
 	this.viewLayout("main/search", "default")
 }
