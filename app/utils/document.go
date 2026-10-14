@@ -221,7 +221,29 @@ func (d *document) DeleteAttachment(attachments []map[string]string) error {
 	return nil
 }
 
-// SaveSnapshot compresses content with gzip and saves it under data/markdowns/{spaceId}/history/{documentId}/{logDocumentId}.md.gz
+// GetSnapshotFilePath returns the snapshot file path, isolated under data/history/{spaceId}/{documentId}/{logDocumentId}.md.gz
+// It completely avoids polluting data/markdowns, and seamlessly migrates legacy files if found.
+func (d *document) GetSnapshotFilePath(spaceId string, documentId string, logDocumentId string) string {
+	newPath := filepath.Join(d.DocumentAbsDir, "history", spaceId, documentId, fmt.Sprintf("%s.md.gz", logDocumentId))
+	if _, err := os.Stat(newPath); err == nil {
+		return newPath
+	}
+	// Check legacy path and migrate if present
+	legacyPath := filepath.Join(d.MarkdownAbsDir, spaceId, "history", documentId, fmt.Sprintf("%s.md.gz", logDocumentId))
+	if _, err := os.Stat(legacyPath); err == nil {
+		_ = os.MkdirAll(filepath.Dir(newPath), 0777)
+		if err := os.Rename(legacyPath, newPath); err == nil {
+			_ = os.Remove(filepath.Dir(legacyPath))
+			_ = os.Remove(filepath.Join(d.MarkdownAbsDir, spaceId, "history"))
+			_ = os.Remove(filepath.Join(d.MarkdownAbsDir, spaceId))
+			return newPath
+		}
+		return legacyPath
+	}
+	return newPath
+}
+
+// SaveSnapshot compresses content with gzip and saves it in data/history/{spaceId}/{documentId}/{logDocumentId}.md.gz
 // It automatically maintains a maximum retention of maxKeep (default 30) revisions per document.
 func (d *document) SaveSnapshot(spaceId string, documentId string, logDocumentId string, content string) error {
 	if content == "" || spaceId == "" || documentId == "" || logDocumentId == "" {
@@ -230,7 +252,7 @@ func (d *document) SaveSnapshot(spaceId string, documentId string, logDocumentId
 	d.lock.Lock()
 	defer d.lock.Unlock()
 
-	historyDir := filepath.Join(d.MarkdownAbsDir, spaceId, "history", documentId)
+	historyDir := filepath.Join(d.DocumentAbsDir, "history", spaceId, documentId)
 	if err := os.MkdirAll(historyDir, 0777); err != nil {
 		return err
 	}
@@ -276,7 +298,7 @@ func (d *document) GetSnapshotContent(spaceId string, documentId string, logDocu
 	d.lock.Lock()
 	defer d.lock.Unlock()
 
-	snapshotFile := filepath.Join(d.MarkdownAbsDir, spaceId, "history", documentId, fmt.Sprintf("%s.md.gz", logDocumentId))
+	snapshotFile := d.GetSnapshotFilePath(spaceId, documentId, logDocumentId)
 	data, err := ioutil.ReadFile(snapshotFile)
 	if err != nil {
 		return "", err
@@ -297,14 +319,14 @@ func (d *document) GetSnapshotContent(spaceId string, documentId string, logDocu
 
 // HasSnapshot checks if a snapshot exists for this revision
 func (d *document) HasSnapshot(spaceId string, documentId string, logDocumentId string) bool {
-	snapshotFile := filepath.Join(d.MarkdownAbsDir, spaceId, "history", documentId, fmt.Sprintf("%s.md.gz", logDocumentId))
+	snapshotFile := d.GetSnapshotFilePath(spaceId, documentId, logDocumentId)
 	fi, err := os.Stat(snapshotFile)
 	return err == nil && !fi.IsDir()
 }
 
 // GetSnapshotFileSize returns the gzipped snapshot size in bytes
 func (d *document) GetSnapshotFileSize(spaceId string, documentId string, logDocumentId string) int64 {
-	snapshotFile := filepath.Join(d.MarkdownAbsDir, spaceId, "history", documentId, fmt.Sprintf("%s.md.gz", logDocumentId))
+	snapshotFile := d.GetSnapshotFilePath(spaceId, documentId, logDocumentId)
 	if fi, err := os.Stat(snapshotFile); err == nil {
 		return fi.Size()
 	}
