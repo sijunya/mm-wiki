@@ -1,3 +1,23 @@
+<link rel="stylesheet" href="/static/plugins/markdown-editor/css/katex.min.css">
+<link rel="stylesheet" href="/static/plugins/markdown-editor/css/highlight-github.min.css" id="hljs-theme">
+<link rel="stylesheet" href="/static/plugins/markdown-editor/css/editor.css">
+
+<style>
+    .md-view-box {
+        background-color: #fff;
+        padding-top: 10px;
+    }
+    #document_page_view.preview-content {
+        padding: 15px 30px 60px 30px;
+        min-height: 500px;
+        background: #fff;
+        font-size: 15px;
+    }
+    .dir-preview-box {
+        z-index: 100;
+    }
+</style>
+
 <div class="container-fluid">
     <div class="row">{{$pageContent := .page_content}}{{$document := .document}}{{$parentDocuments := .parent_documents}}
 
@@ -61,7 +81,7 @@
                 </div>
                 <hr style="margin: 0">
             </div>
-            <div class="panel-body md-view-box" >
+            <div class="panel-body md-view-box">
                 <div class="dir-preview-box">
                     <div class="dir-preview-btn">
                         展开目录
@@ -70,67 +90,55 @@
 
                     </div>
                 </div>
-                <div id="document_page_view" style="padding: 0 10px 10px 10px;">
-                    <textarea style="display:none;">{{$pageContent}}</textarea>
+                <div id="document_page_view" class="preview-content">
+                    <textarea id="raw_markdown_content" style="display:none;">{{$pageContent}}</textarea>
                 </div>
             </div>
         </div>
     </div>
 </div>
-<script src="/static/plugins/md-toc/md-toc.js"></script>
+
+<!-- 图片及 Mermaid SVG 全屏大图预览 -->
+<div class="img-preview-overlay" id="img-preview">
+  <img src="" alt="预览" id="img-preview-img">
+</div>
+
+<!-- 依赖脚本 -->
+<script src="/static/plugins/markdown-editor/js/marked.min.js"></script>
+<script src="/static/plugins/markdown-editor/js/purify.min.js"></script>
+<script src="/static/plugins/markdown-editor/js/highlight.min.js"></script>
+<script src="/static/plugins/markdown-editor/js/katex.min.js"></script>
+<script src="/static/plugins/markdown-editor/js/katex-auto-render.min.js"></script>
 <script src="/static/plugins/markdown-editor/js/mermaid.min.js"></script>
+<script src="/static/plugins/markdown-editor/js/editor.js"></script>
+<script src="/static/plugins/md-toc/md-toc.js"></script>
+
 <script type="text/javascript">
     Layers.bindIframe("[name='history']", "文档修改历史", "508px", "1000px");
-    $("[data-toggle='web-popover']").webuiPopover({animation: 'pop',autoHide:3000});
+    $("[data-toggle='web-popover']").webuiPopover({animation: 'pop', autoHide: 3000});
     if (parent.layoutOpen) {
         parent.layoutOpen();
     }
-    $(function() {
-        editormd.katexURL = {
-            js  : "/static/plugins/editor.md/lib/katex/katex.min",
-            css : "/static/plugins/editor.md/lib/katex/katex.min"
-        };
-        editormd.markdownToHTML("document_page_view", {
-            path : '/static/plugins/editor.md/lib/',
-            //htmlDecode      : true,       // 开启 HTML 标签解析，为了安全性，默认不开启
-            htmlDecode      : "style,script,iframe",  // you can filter tags decode
-            //toc             : false,
-            tocm            : true,    // Using [TOCM]
-            //tocContainer    : "#custom-toc-container", // 自定义 ToC 容器层
-            //gfm             : false,
-            //tocDropdown     : true,
-            //markdownSourceCode : true, // 是否保留 Markdown 源码，即是否删除保存源码的 Textarea 标签
-            emoji           : false,
-            taskList        : true,
-            tex             : true,  // 默认不解析
-            flowChart       : true,  // 默认不解析
-            sequenceDiagram : true,  // 默认不解析
-        });
 
-        // 渲染 Mermaid 图表
-        if (window.mermaid) {
-            try {
-                mermaid.initialize({ startOnLoad: false, theme: 'default', securityLevel: 'loose' });
-                var mermaidBlocks = document.querySelectorAll('#document_page_view pre code.lang-mermaid, #document_page_view pre.mermaid');
-                if (mermaidBlocks.length > 0) {
-                    mermaidBlocks.forEach(function (block) {
-                        var pre = block.closest('pre') || block;
-                        var code = block.textContent;
-                        var container = document.createElement('div');
-                        container.className = 'mermaid';
-                        container.textContent = code;
-                        pre.parentNode.replaceChild(container, pre);
-                    });
-                    mermaid.run();
-                }
-            } catch(e) { console.error('Mermaid render error:', e); }
+    $(function() {
+        var rawContent = $("#raw_markdown_content").val() || "";
+        var container = document.getElementById("document_page_view");
+
+        // 使用与编辑预览 100% 统一的现代渲染引擎渲染文档
+        if (window.MMWikiEditor && window.MMWikiEditor.render) {
+            window.MMWikiEditor.render(rawContent, container);
+        } else if (window.MMWikiMarkdown && window.MMWikiMarkdown.render) {
+            window.MMWikiMarkdown.render(rawContent, container);
         }
 
-        // 将所有的 a 标签 target="_parent"
+        // 将非锚点的 a 标签设为 target="_parent" 保证框架跳转顺畅
         $("#document_page_view").find("a").each(function () {
-            var target = $(this).attr("target") || "_parent";
-            $(this).attr("target", target);
-        })
+            var href = $(this).attr("href") || "";
+            if (!href.startsWith("#")) {
+                var target = $(this).attr("target") || "_parent";
+                $(this).attr("target", target);
+            }
+        });
 
         // 生成目录树
         new Toc("document_page_view", {
@@ -140,20 +148,20 @@
             targetId: "page-view-dir-toc"
         });
 
-        // 按钮目录按钮永久显示, 滑动页面时, 固定显示
+        // 目录浮动效果
         window.onscroll = function(){
             var scrollHeight = document.documentElement.scrollTop || document.body.scrollTop;
             var dirPreviewBox = $(".dir-preview-box");
-            if (scrollHeight >  120) {
+            if (scrollHeight > 120) {
                 dirPreviewBox.css({
                     position: "fixed",
                     top: "20px"
-                })
+                });
             } else {
                 dirPreviewBox.css({
                     position: "absolute",
                     top: "0"
-                })
+                });
             }
         };
 
@@ -167,11 +175,11 @@
                     position: "absolute",
                     top: "25px",
                     right: 0
-                })
+                });
             } else {
                 this.innerText = "展开目录";
                 pageViewDirToc.hide();
             }
-        })
+        });
     });
 </script>

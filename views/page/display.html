@@ -1,3 +1,16 @@
+<link rel="stylesheet" href="/static/plugins/markdown-editor/css/katex.min.css">
+<link rel="stylesheet" href="/static/plugins/markdown-editor/css/highlight-github.min.css" id="hljs-theme">
+<link rel="stylesheet" href="/static/plugins/markdown-editor/css/editor.css">
+
+<style>
+    #document_content_body.preview-content {
+        padding: 20px 20px 40px 20px;
+        min-height: 400px;
+        background: #fff;
+        font-size: 15px;
+    }
+</style>
+
 <div class="container">{{$pageContent := .page_content}}{{$document := .document}}{{$parentDocuments := .parent_documents}}
     <div class="row center">{{$createUser := .create_user}}{{$editUser := .edit_user}}
         <div class="col-md-1"></div>
@@ -23,7 +36,8 @@
                         修改于 {{dateFormat $document.update_time "Y/m/d H:i:s"}} By  {{$editUser.username}}（{{$editUser.given_name}}）
                     </p>
                     <hr style="margin: 0">
-                    <textarea style="display:none;">{{$pageContent}}</textarea>
+                    <textarea id="raw_markdown_content" style="display:none;">{{$pageContent}}</textarea>
+                    <div id="document_content_body" class="preview-content"></div>
                 </div>
             </div>
             <div class="panel panel-body">
@@ -43,36 +57,35 @@
         </div>
     </div>
 </div>
+
+<!-- 图片及 Mermaid SVG 全屏大图预览 -->
+<div class="img-preview-overlay" id="img-preview">
+  <img src="" alt="预览" id="img-preview-img">
+</div>
+
+<script src="/static/plugins/markdown-editor/js/marked.min.js"></script>
+<script src="/static/plugins/markdown-editor/js/purify.min.js"></script>
+<script src="/static/plugins/markdown-editor/js/highlight.min.js"></script>
+<script src="/static/plugins/markdown-editor/js/katex.min.js"></script>
+<script src="/static/plugins/markdown-editor/js/katex-auto-render.min.js"></script>
+<script src="/static/plugins/markdown-editor/js/mermaid.min.js"></script>
+<script src="/static/plugins/markdown-editor/js/editor.js"></script>
+
 <script type="text/javascript">
     $(function() {
         if (Common.isMobile()) {
-            $("#display_section").hide()
+            $("#display_section").hide();
         }
 
-        editormd.katexURL = {
-            js  : "/static/plugins/editor.md/lib/katex/katex.min",
-            css : "/static/plugins/editor.md/lib/katex/katex.min"
-        };
-        editormd.markdownToHTML("document_page_view", {
-            path : '/static/plugins/editor.md/lib/',
-            //htmlDecode      : true,       // 开启 HTML 标签解析，为了安全性，默认不开启
-            htmlDecode      : "style,script,iframe",  // you can filter tags decode
-            //toc             : false,
-            tocm            : true,    // Using [TOCM]
-            //tocContainer    : "#custom-toc-container", // 自定义 ToC 容器层
-            //gfm             : false,
-            //tocDropdown     : true,
-            //markdownSourceCode : true, // 是否保留 Markdown 源码，即是否删除保存源码的 Textarea 标签
-            emoji           : false,
-            taskList        : true,
-            tex             : true,  // 默认不解析
-            flowChart       : true,  // 默认不解析
-            sequenceDiagram : true,  // 默认不解析
-        });
+        var rawContent = $("#raw_markdown_content").val() || "";
+        var container = document.getElementById("document_content_body");
+
+        if (window.MMWikiEditor && window.MMWikiEditor.render) {
+            window.MMWikiEditor.render(rawContent, container);
+        }
 
         $.scrollUp({
             animation: 'fade',
-            // activeOverlay: '#00FFFF',
             scrollImg: {
                 active: true,
                 type: 'background',

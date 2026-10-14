@@ -131,8 +131,8 @@
     }
   };
 
-  // ===== Mermaid 语法转换与初始化 =====
-  MMWikiEditor.prototype.convertSeqToMermaid = function (code) {
+  // ===== Mermaid 语法转换与静态工具函数 =====
+  MMWikiEditor.convertSeqToMermaid = function (code) {
     if (/^\s*sequenceDiagram\b/mi.test(code)) return code;
     var lines = code.trim().split('\n');
     var result = ['sequenceDiagram'];
@@ -147,123 +147,44 @@
     }
     return result.join('\n');
   };
+  MMWikiEditor.prototype.convertSeqToMermaid = MMWikiEditor.convertSeqToMermaid;
 
-  MMWikiEditor.prototype.getMermaid = function () {
-    var self = this;
-    if (this.mermaidPromise) return this.mermaidPromise;
+  MMWikiEditor._mermaidPromise = null;
+  MMWikiEditor.getMermaid = function () {
+    if (MMWikiEditor._mermaidPromise) return MMWikiEditor._mermaidPromise;
     if (typeof mermaid !== 'undefined') {
-      this.mermaidPromise = Promise.resolve(mermaid);
-      return this.mermaidPromise;
+      MMWikiEditor._mermaidPromise = Promise.resolve(mermaid);
+      return MMWikiEditor._mermaidPromise;
     }
-    // 动态回退加载
-    this.mermaidPromise = new Promise(function (resolve, reject) {
+    MMWikiEditor._mermaidPromise = new Promise(function (resolve, reject) {
       var script = document.createElement('script');
-      script.src = '/static/js/mermaid.min.js';
+      script.src = '/static/plugins/markdown-editor/js/mermaid.min.js';
       script.onload = function () { resolve(window.mermaid); };
       script.onerror = function () { reject(new Error('Mermaid 加载失败')); };
       document.head.appendChild(script);
     });
-    return this.mermaidPromise;
+    return MMWikiEditor._mermaidPromise;
   };
+  MMWikiEditor.prototype.getMermaid = MMWikiEditor.getMermaid;
 
-  // ===== Marked 初始化与自定义扩展 =====
-  MMWikiEditor.prototype.initMarked = function () {
-    var self = this;
-    if (typeof marked === 'undefined') {
-      console.error('Marked 库未加载');
-      return;
-    }
-
-    var renderer = new marked.Renderer();
-    var mermaidLangs = ['mermaid','graph','flowchart','sequencediagram','classdiagram','state','er','journey','gitgraph','pie','requirementdiagram','c4context','mindmap','timeline','sankey','xychart','block','packet','kanban'];
-
-    renderer.code = function (code, language) {
-      var lang = (language || '').toLowerCase();
-      if (mermaidLangs.indexOf(lang) !== -1 || lang === 'seq' || lang === 'gantt') {
-        var mermaidCode = code;
-        if (lang === 'gantt') mermaidCode = 'gantt\n' + code;
-        else if (lang === 'seq') mermaidCode = self.convertSeqToMermaid(code);
-        return '<pre><code class="hljs language-mermaid">' + self.escapeHtml(mermaidCode) + '</code><button type="button" class="hljs-copy-btn">复制</button></pre>';
-      }
-
-      var validLang = language && typeof hljs !== 'undefined' && hljs.getLanguage(language) ? language : 'plaintext';
-      var highlighted = '';
-      if (typeof hljs !== 'undefined') {
-        highlighted = validLang !== 'plaintext' ? hljs.highlight(code, { language: validLang }).value : hljs.highlightAuto(code).value;
-      } else {
-        highlighted = self.escapeHtml(code);
-      }
-      return '<pre><code class="hljs language-' + validLang + '">' + highlighted + '</code><button type="button" class="hljs-copy-btn">复制</button></pre>';
-    };
-
-    renderer.codespan = function (code) {
-      return '<code>' + self.escapeHtml(code) + '</code>';
-    };
-
-    renderer.table = function (header, body) {
-      return '<div class="table-container"><table class="table table-bordered table-striped"><thead>' + header + '</thead><tbody>' + body + '</tbody></table></div>';
-    };
-
-    renderer.heading = function (text, level) {
-      var id = text.toLowerCase().replace(/[^\w\u4e00-\u9fa5\s-]/g, '').replace(/\s+/g, '-');
-      return '<h' + level + ' id="' + id + '">' + text + '</h' + level + '>';
-    };
-
-    // 支持 Callout / Alerts (> [!INFO], > [!WARNING], > [!NOTE], etc.)
-    renderer.blockquote = function (quote) {
-      var calloutMatch = quote.match(/^\s*<p>\[!([A-Z]+)\](?:\s+([^<]*?))?(?:<br\s*\/?>\s*|\s*)/i);
-      if (calloutMatch) {
-        var type = calloutMatch[1].toLowerCase();
-        var inlineTitle = calloutMatch[2];
-        var title = inlineTitle || type.toUpperCase();
-        var content = quote.replace(/^\s*<p>\[!([A-Z]+)\](?:\s+[^<]*?)?(?:<br\s*\/?>\s*|\s*)/i, '<p>');
-        var icons = {
-          info: 'ℹ️', warning: '⚠️', danger: '🔴', success: '✅',
-          note: '📝', tip: '💡', important: '❗'
-        };
-        var icon = icons[type] || '📌';
-        return '<div class="callout callout-' + type + '"><div class="callout-title">' + icon + ' ' + self.escapeHtml(title) + '</div>' + content + '</div>';
-      }
-      return '<blockquote>' + quote + '</blockquote>';
-    };
-
-    // 注册 ==高亮文本== 扩展
-    marked.use({
-      extensions: [{
-        name: 'highlight',
-        level: 'inline',
-        start: function (src) { return src.indexOf('=='); },
-        tokenizer: function (src) {
-          var match = /^==(.+?)==/.exec(src);
-          if (match) {
-            return { type: 'highlight', raw: match[0], text: match[1] };
-          }
-        },
-        renderer: function (token) {
-          return '<mark>' + self.escapeHtml(token.text) + '</mark>';
-        }
-      }]
-    });
-
-    marked.use({
-      renderer: renderer,
-      gfm: true,
-      breaks: true
-    });
+  MMWikiEditor.escapeHtml = function (str) {
+    if (str == null) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
   };
+  MMWikiEditor.prototype.escapeHtml = MMWikiEditor.escapeHtml;
 
-  MMWikiEditor.prototype.escapeHtml = function (str) {
-    var div = document.createElement('div');
-    div.textContent = str;
-    return div.innerHTML;
+  MMWikiEditor.stripFrontMatter = function (text) {
+    return (text || '').replace(/^\s*---\s*\n[\s\S]*?\n---\s*(?:\n|$)/, '');
   };
-
-  MMWikiEditor.prototype.stripFrontMatter = function (text) {
-    return text.replace(/^\s*---\s*\n[\s\S]*?\n---\s*(?:\n|$)/, '');
-  };
+  MMWikiEditor.prototype.stripFrontMatter = MMWikiEditor.stripFrontMatter;
 
   // ===== 脚注与目录预处理 =====
-  MMWikiEditor.prototype.preprocessFootnotes = function (raw) {
+  MMWikiEditor.preprocessFootnotes = function (raw) {
     var defs = {};
     var defRegex = /^\[\^(\w+)\]:\s*(.+)$/gm;
     var m;
@@ -282,9 +203,9 @@
     });
     return { processed: processed, defs: defs, indexMap: indexMap };
   };
+  MMWikiEditor.prototype.preprocessFootnotes = MMWikiEditor.preprocessFootnotes;
 
-  MMWikiEditor.prototype.renderFootnotes = function (html, defs, indexMap) {
-    var self = this;
+  MMWikiEditor.renderFootnotes = function (html, defs, indexMap) {
     html = html.replace(/<!--FNREF:(\w+)-->/g, function (match, key) {
       if (indexMap[key]) {
         return '<sup class="footnote-ref"><a id="fnref-' + key + '" href="#fn-' + key + '" title="查看脚注">[' + indexMap[key] + ']</a></sup>';
@@ -301,9 +222,9 @@
     }
     return html;
   };
+  MMWikiEditor.prototype.renderFootnotes = MMWikiEditor.renderFootnotes;
 
-  MMWikiEditor.prototype.processTOC = function (html, raw) {
-    var self = this;
+  MMWikiEditor.processTOC = function (html, raw) {
     if (!/\[TOC\]|\[toc\]/i.test(raw)) return html;
 
     var lines = raw.split('\n');
@@ -340,52 +261,193 @@
 
     var tocHtml = '<div class="toc"><div class="callout-title">📑 目录导航</div><ul>';
     headings.forEach(function (h) {
-      tocHtml += '<li style="margin-left:' + ((h.level - 1) * 16) + 'px"><a href="#' + h.id + '">' + self.escapeHtml(h.text) + '</a></li>';
+      tocHtml += '<li style="margin-left:' + ((h.level - 1) * 16) + 'px"><a href="#' + h.id + '">' + MMWikiEditor.escapeHtml(h.text) + '</a></li>';
     });
     tocHtml += '</ul></div>';
 
     return html.replace(/<p>\[TOC\]<\/p>/gi, tocHtml).replace(/<p>\[toc\]<\/p>/gi, tocHtml);
   };
+  MMWikiEditor.prototype.processTOC = MMWikiEditor.processTOC;
 
-  // ===== 核心渲染管线 =====
-  MMWikiEditor.prototype.renderPreview = function () {
-    var self = this;
-    if (!this.editor || !this.preview) return;
+  // ===== 全局 Marked 初始化 =====
+  MMWikiEditor._markedInitialized = false;
+  MMWikiEditor.ensureMarked = function () {
+    if (MMWikiEditor._markedInitialized) return;
+    if (typeof marked === 'undefined') {
+      console.error('Marked 库未加载');
+      return;
+    }
 
-    var raw = this.editor.value;
-    var cleanRaw = this.stripFrontMatter(raw);
-    var fnData = this.preprocessFootnotes(cleanRaw);
+    var renderer = new marked.Renderer();
+    var mermaidLangs = ['mermaid','graph','flowchart','sequencediagram','classdiagram','state','er','journey','gitgraph','pie','requirementdiagram','c4context','mindmap','timeline','sankey','xychart','block','packet','kanban'];
+
+    renderer.code = function (code, language) {
+      var lang = (language || '').toLowerCase();
+      if (mermaidLangs.indexOf(lang) !== -1 || lang === 'seq' || lang === 'gantt') {
+        var mermaidCode = code;
+        if (lang === 'gantt') mermaidCode = 'gantt\n' + code;
+        else if (lang === 'seq') mermaidCode = MMWikiEditor.convertSeqToMermaid(code);
+        return '<pre><code class="hljs language-mermaid">' + MMWikiEditor.escapeHtml(mermaidCode) + '</code><button type="button" class="hljs-copy-btn">复制</button></pre>';
+      }
+
+      var validLang = language && typeof hljs !== 'undefined' && hljs.getLanguage(language) ? language : 'plaintext';
+      var highlighted = '';
+      if (typeof hljs !== 'undefined') {
+        highlighted = validLang !== 'plaintext' ? hljs.highlight(code, { language: validLang }).value : hljs.highlightAuto(code).value;
+      } else {
+        highlighted = MMWikiEditor.escapeHtml(code);
+      }
+      return '<pre><code class="hljs language-' + validLang + '">' + highlighted + '</code><button type="button" class="hljs-copy-btn">复制</button></pre>';
+    };
+
+    renderer.codespan = function (code) {
+      return '<code>' + MMWikiEditor.escapeHtml(code) + '</code>';
+    };
+
+    renderer.table = function (header, body) {
+      return '<div class="table-container"><table class="table table-bordered table-striped"><thead>' + header + '</thead><tbody>' + body + '</tbody></table></div>';
+    };
+
+    renderer.heading = function (text, level) {
+      var id = text.toLowerCase().replace(/[^\w\u4e00-\u9fa5\s-]/g, '').replace(/\s+/g, '-');
+      return '<h' + level + ' id="' + id + '">' + text + '</h' + level + '>';
+    };
+
+    renderer.blockquote = function (quote) {
+      var calloutMatch = quote.match(/^\s*<p>\[!([A-Z]+)\](?:\s+([^<]*?))?(?:<br\s*\/?>\s*|\s*)/i);
+      if (calloutMatch) {
+        var type = calloutMatch[1].toLowerCase();
+        var inlineTitle = calloutMatch[2];
+        var title = inlineTitle || type.toUpperCase();
+        var content = quote.replace(/^\s*<p>\[!([A-Z]+)\](?:\s+[^<]*?)?(?:<br\s*\/?>\s*|\s*)/i, '<p>');
+        var icons = {
+          info: 'ℹ️', warning: '⚠️', danger: '🔴', success: '✅',
+          note: '📝', tip: '💡', important: '❗'
+        };
+        var icon = icons[type] || '📌';
+        return '<div class="callout callout-' + type + '"><div class="callout-title">' + icon + ' ' + MMWikiEditor.escapeHtml(title) + '</div>' + content + '</div>';
+      }
+      return '<blockquote>' + quote + '</blockquote>';
+    };
+
+    marked.use({
+      extensions: [
+        {
+          name: 'mathBlock',
+          level: 'block',
+          start: function (src) { return src.indexOf('$$'); },
+          tokenizer: function (src) {
+            var match = /^\$\$[\r\n]+([\s\S]*?)[\r\n]+\$\$(?:\n+|$)/.exec(src);
+            if (!match) {
+              match = /^\$\$([^\n]+?)\$\$(?:\n+|$)/.exec(src);
+            }
+            if (match) {
+              return {
+                type: 'mathBlock',
+                raw: match[0],
+                text: match[1].trim()
+              };
+            }
+          },
+          renderer: function (token) {
+            if (typeof katex !== 'undefined') {
+              try {
+                return '<div class="katex-block">' + katex.renderToString(token.text, { displayMode: true, throwOnError: false }) + '</div>\n';
+              } catch (e) {}
+            }
+            return '<div class="katex-block">$$' + MMWikiEditor.escapeHtml(token.text) + '$$</div>\n';
+          }
+        },
+        {
+          name: 'mathInline',
+          level: 'inline',
+          start: function (src) { return src.indexOf('$'); },
+          tokenizer: function (src) {
+            var matchBlock = /^\$\$([^\$]+?)\$\$/.exec(src);
+            if (matchBlock && matchBlock[1].trim().length > 0) {
+              return { type: 'mathBlockInline', raw: matchBlock[0], text: matchBlock[1].trim() };
+            }
+            var match = /^\$([^\$\n\r]+?)\$/.exec(src);
+            if (match && match[1].trim().length > 0) {
+              return { type: 'mathInline', raw: match[0], text: match[1].trim() };
+            }
+          },
+          renderer: function (token) {
+            var isBlock = token.type === 'mathBlockInline';
+            if (typeof katex !== 'undefined') {
+              try {
+                return katex.renderToString(token.text, { displayMode: isBlock, throwOnError: false });
+              } catch (e) {}
+            }
+            return (isBlock ? '$$' : '$') + MMWikiEditor.escapeHtml(token.text) + (isBlock ? '$$' : '$');
+          }
+        },
+        {
+          name: 'highlight',
+          level: 'inline',
+          start: function (src) { return src.indexOf('=='); },
+          tokenizer: function (src) {
+            var match = /^==(.+?)==/.exec(src);
+            if (match) {
+              return { type: 'highlight', raw: match[0], text: match[1] };
+            }
+          },
+          renderer: function (token) {
+            return '<mark>' + MMWikiEditor.escapeHtml(token.text) + '</mark>';
+          }
+        }
+      ]
+    });
+
+    marked.use({
+      renderer: renderer,
+      gfm: true,
+      breaks: true
+    });
+
+    MMWikiEditor._markedInitialized = true;
+  };
+  MMWikiEditor.prototype.initMarked = function () {
+    MMWikiEditor.ensureMarked();
+  };
+
+  // ===== 静态独立 Markdown 渲染管线 (可供浏览页/展示页直接调用) =====
+  MMWikiEditor.render = function (raw, targetEl, options) {
+    if (!targetEl) return;
+    options = options || {};
+    MMWikiEditor.ensureMarked();
+
+    var cleanRaw = MMWikiEditor.stripFrontMatter(raw || '');
+    var fnData = MMWikiEditor.preprocessFootnotes(cleanRaw);
     var html = marked.parse(fnData.processed);
-    html = this.processTOC(html, cleanRaw);
-    html = this.renderFootnotes(html, fnData.defs, fnData.indexMap);
+    html = MMWikiEditor.processTOC(html, cleanRaw);
+    html = MMWikiEditor.renderFootnotes(html, fnData.defs, fnData.indexMap);
 
-    if (typeof DOMPurify !== 'undefined') {
+    if (typeof DOMPurify !== 'undefined' && typeof DOMPurify.sanitize === 'function') {
       html = DOMPurify.sanitize(html, {
         ADD_TAGS: ['mjx-container', 'math', 'mrow', 'mi', 'mo', 'mn', 'msup', 'msub', 'mfrac', 'msqrt', 'mtable', 'mtr', 'mtd', 'mtext', 'mstyle', 'annotation', 'semantics', 'input'],
         ADD_ATTR: ['xmlns', 'display', 'mathvariant', 'accent', 'fence', 'stretchy', 'lspace', 'rspace', 'displaystyle', 'scriptlevel', 'type', 'checked', 'disabled']
       });
     }
 
-    this.preview.innerHTML = html;
-
-    // 同步隐藏域给 MM-Wiki 后端
-    if (this.hiddenInput) {
-      this.hiddenInput.value = raw;
+    targetEl.innerHTML = html;
+    if (!targetEl.classList.contains('preview-content')) {
+      targetEl.classList.add('preview-content');
     }
 
     // 任务列表样式
-    this.preview.querySelectorAll('li').forEach(function (li) {
+    targetEl.querySelectorAll('li').forEach(function (li) {
       if (li.querySelector(':scope > input[type="checkbox"]')) {
         li.classList.add('task-list-item');
       }
     });
 
     // 代码块一键复制按钮
-    this.preview.querySelectorAll('.hljs-copy-btn').forEach(function (btn) {
+    targetEl.querySelectorAll('.hljs-copy-btn').forEach(function (btn) {
       btn.addEventListener('click', function () {
-        var code = this.parentElement.querySelector('code').textContent;
-        if (navigator.clipboard) {
-          navigator.clipboard.writeText(code).then(function () {
+        var codeEl = this.parentElement.querySelector('code');
+        if (codeEl && navigator.clipboard) {
+          navigator.clipboard.writeText(codeEl.textContent).then(function () {
             btn.textContent = '已复制';
             setTimeout(function () { btn.textContent = '复制'; }, 1500);
           });
@@ -395,7 +457,7 @@
 
     // KaTeX 数学公式渲染
     if (typeof renderMathInElement !== 'undefined') {
-      renderMathInElement(this.preview, {
+      renderMathInElement(targetEl, {
         delimiters: [
           { left: '$$', right: '$$', display: true },
           { left: '$', right: '$', display: false }
@@ -405,7 +467,7 @@
     }
 
     // Mermaid 图表渲染
-    var mermaidBlocks = this.preview.querySelectorAll('.language-mermaid');
+    var mermaidBlocks = targetEl.querySelectorAll('.language-mermaid');
     if (mermaidBlocks.length > 0) {
       mermaidBlocks.forEach(function (el) {
         var code = el.textContent;
@@ -415,43 +477,57 @@
         el.closest('pre').replaceWith(container);
       });
 
-      this.getMermaid().then(function (m) {
-        m.initialize({ startOnLoad: false, theme: self.isDark ? 'dark' : 'default' });
+      MMWikiEditor.getMermaid().then(function (m) {
+        m.initialize({ startOnLoad: false, theme: options.isDark ? 'dark' : 'default' });
         return m.run({ querySelector: '.mermaid' });
       }).then(function () {
-        self.preview.querySelectorAll('.mermaid svg').forEach(function (svg) {
+        targetEl.querySelectorAll('.mermaid svg').forEach(function (svg) {
           svg.style.cursor = 'zoom-in';
-          svg.addEventListener('click', function (e) { self.showImagePreview(e); });
+          svg.addEventListener('click', function (e) { MMWikiEditor.showImageOverlay(e); });
         });
       }).catch(function (err) {
         console.warn('Mermaid 渲染异常:', err);
       });
     }
 
-    // 图片点击查看大图
-    this.preview.querySelectorAll('img').forEach(function (img) {
+    // 图片点击放大全屏查看
+    targetEl.querySelectorAll('img').forEach(function (img) {
       img.style.cursor = 'zoom-in';
-      img.addEventListener('click', function (e) { self.showImagePreview(e); });
+      img.addEventListener('click', function (e) { MMWikiEditor.showImageOverlay(e); });
     });
-
-    this.updateStats();
-    this.scheduleSave();
   };
 
   // ===== 大图全屏查看 =====
-  MMWikiEditor.prototype.showImagePreview = function (e) {
+  MMWikiEditor.showImageOverlay = function (e) {
+    var overlay = document.getElementById('img-preview');
+    var overlayImg = document.getElementById('img-preview-img');
+    if (!overlay || !overlayImg) return;
     var el = e.currentTarget;
-    if (!this.imgPreview || !this.imgPreviewImg) return;
     if (el.tagName.toLowerCase() === 'svg') {
       var serializer = new XMLSerializer();
       var svgStr = serializer.serializeToString(el);
-      this.imgPreviewImg.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgStr);
-      this.imgPreviewImg.alt = '图表预览';
+      overlayImg.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgStr);
+      overlayImg.alt = '图表预览';
     } else {
-      this.imgPreviewImg.src = el.src;
-      this.imgPreviewImg.alt = el.alt || '图片预览';
+      overlayImg.src = el.src;
+      overlayImg.alt = el.alt || '图片预览';
     }
-    this.imgPreview.classList.add('active');
+    overlay.classList.add('active');
+  };
+  MMWikiEditor.prototype.showImagePreview = MMWikiEditor.showImageOverlay;
+
+  // ===== 编辑器实例渲染管线 =====
+  MMWikiEditor.prototype.renderPreview = function () {
+    if (!this.editor || !this.preview) return;
+    var raw = this.editor.value;
+    MMWikiEditor.render(raw, this.preview, { isDark: this.isDark });
+
+    if (this.hiddenInput) {
+      this.hiddenInput.value = raw;
+    }
+
+    this.updateStats();
+    this.scheduleSave();
   };
 
   // ===== 本地草稿与内容加载 =====
@@ -1036,5 +1112,8 @@
   };
 
   window.MMWikiEditor = MMWikiEditor;
+  window.MMWikiMarkdown = {
+    render: MMWikiEditor.render
+  };
 
 })(window);
