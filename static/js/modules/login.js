@@ -49,9 +49,9 @@ var Login = {
 			if(result.code == 1) {
 				// success(result.message, result.data);
                 var content = '<i class="fa fa-smile-o"></i> '+result.message;
-                layer.msg(content);
-                if (result.redirect.url) {
-                    var sleepTime = result.redirect.sleep || 3000;
+                layer.msg(content, { time: 800 });
+                if (result.redirect && result.redirect.url) {
+                    var sleepTime = (typeof result.redirect.sleep !== "undefined" && result.redirect.sleep !== null) ? result.redirect.sleep : 300;
                     setTimeout(function() {
                     	location.href = result.redirect.url;
                     }, sleepTime);

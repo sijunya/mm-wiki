@@ -84,8 +84,8 @@ var Install = {
             if (result.code == 1) {
                 // successBox(result.message, result.data);
             }
-            if (result.redirect.url) {
-                var sleepTime = result.redirect.sleep || 3000;
+            if (result.redirect && result.redirect.url) {
+                var sleepTime = (typeof result.redirect.sleep !== "undefined" && result.redirect.sleep !== null) ? result.redirect.sleep : 300;
                 setTimeout(function() {
                     location.href = result.redirect.url;
                 }, sleepTime);

@@ -65,8 +65,8 @@ var Page = {
                     successBox(result.message, result.data);
                 }
             }
-            if (result.redirect.url && result.data == "0") {
-                var sleepTime = result.redirect.sleep || 3000;
+            if (result.redirect && result.redirect.url && result.data == "0") {
+                var sleepTime = (typeof result.redirect.sleep !== "undefined" && result.redirect.sleep !== null) ? result.redirect.sleep : 400;
                 setTimeout(function () {
                     parent.location.href = result.redirect.url;
                 }, sleepTime);

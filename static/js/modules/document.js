@@ -224,25 +224,25 @@ var Document = {
                 success: function (res) {
                     layer.close(loadIdx);
                     if (res.code === 1) {
-                        layer.msg(res.message || "文档层级与排序更新成功", { icon: 1, time: 1500 });
+                        layer.msg(res.message || "文档层级与排序更新成功", { icon: 1, time: 1000 });
                         if (moveType === "inner") {
                             moveNode.pId = targetNode.id;
                         } else {
                             moveNode.pId = targetNode.pId;
                         }
                     } else {
-                        layer.msg(res.message || "移动失败，正在重置目录...", { icon: 2, time: 2500 });
+                        layer.msg(res.message || "移动失败，正在重置目录...", { icon: 2, time: 1500 });
                         setTimeout(function () {
                             location.reload();
-                        }, 1200);
+                        }, 600);
                     }
                 },
                 error: function () {
                     layer.close(loadIdx);
-                    layer.msg("网络请求异常，正在重置目录...", { icon: 2, time: 2500 });
+                    layer.msg("网络请求异常，正在重置目录...", { icon: 2, time: 1500 });
                     setTimeout(function () {
                         location.reload();
-                    }, 1200);
+                    }, 600);
                 }
             });
             return true;

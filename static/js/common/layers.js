@@ -34,13 +34,13 @@ var Layers = {
 	failedMsg: function (info, callback) {
 		var content = '<i class="fa fa-frown-o"></i> ';
 		content += info;
-		layer.msg(content, callback);
+		layer.msg(content, { time: 2000 }, callback);
 	},
 
 	successMsg: function (info, callback) {
 		var content = '<i class="fa fa-smile-o"></i> ';
 		content += info;
-		layer.msg(content, callback);
+		layer.msg(content, { time: 1000 }, callback);
 	},
 
 	/**

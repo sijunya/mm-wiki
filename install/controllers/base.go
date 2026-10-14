@@ -76,7 +76,7 @@ func (this *BaseController) view(viewName string) {
 func (this *BaseController) viewError(errorMessage string, data ...interface{}) {
 	this.Layout = "layout/install.html"
 	redirect := "/"
-	sleep := 2000
+	sleep := 1000
 	if len(data) > 0 {
 		redirect = data[0].(string)
 	}
@@ -139,7 +139,7 @@ func (this *BaseController) jsonSuccess(message interface{}, data ...interface{}
 // return json error
 func (this *BaseController) jsonError(message interface{}, data ...interface{}) {
 	url := ""
-	sleep := 2000
+	sleep := 1000
 	var _data interface{}
 	if len(data) > 0 {
 		_data = data[0]

@@ -32,7 +32,7 @@ type UploadJsonResponse struct {
 
 func (this *BaseController) uploadJsonError(message interface{}, data ...interface{}) {
 	url := ""
-	sleep := 2000
+	sleep := 1000
 	var _data interface{}
 	if len(data) > 0 {
 		_data = data[0]

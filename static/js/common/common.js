@@ -28,7 +28,12 @@ var Common = {
 				if(response.code == 0) {
 					Layers.failedMsg(response.message, function () {});
 				} else {
-					Layers.successMsg(response.message, Common.redirect(response.redirect.url));
+					var sleep = 400;
+					if (response.redirect && typeof response.redirect.sleep !== "undefined") {
+						sleep = response.redirect.sleep;
+					}
+					Layers.successMsg(response.message);
+					Common.redirect(response.redirect ? response.redirect.url : '', sleep);
 				}
 			},
 			error : function(response) {
@@ -69,16 +74,18 @@ var Common = {
 	/**
 	 * redirect
 	 * @param redirect
+	 * @param sleep
 	 */
-	redirect: function (redirect) {
+	redirect: function (redirect, sleep) {
+		var delay = (typeof sleep === 'number' && sleep >= 0) ? sleep : 400;
 		if(redirect) {
 			setTimeout(function() {
 				location.href = redirect;
-			}, 2000);
+			}, delay);
 		}else {
-            setTimeout(function() {
-                location.reload();
-            }, 2000);
+			setTimeout(function() {
+				location.reload();
+			}, delay);
 		}
 	},
 

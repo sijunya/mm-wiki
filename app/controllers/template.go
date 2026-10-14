@@ -163,7 +163,7 @@ func (this *TemplateController) ViewError(content string, redirect ...string) {
 	this.Layout = "error/default.html"
 	this.TplName = "layouts/default.html"
 	var url = ""
-	var sleep = "5"
+	var sleep = "2"
 	if len(redirect) == 1 {
 		url = redirect[0]
 	}
@@ -183,7 +183,7 @@ func (this *TemplateController) ViewError(content string, redirect ...string) {
 // return json success
 func (this *TemplateController) JsonSuccess(message interface{}, data ...interface{}) {
 	url := ""
-	sleep := 2000
+	sleep := 300
 	var _data interface{}
 	if len(data) > 0 {
 		_data = data[0]
@@ -216,7 +216,7 @@ func (this *TemplateController) JsonSuccess(message interface{}, data ...interfa
 // return json error
 func (this *TemplateController) JsonError(message interface{}, data ...interface{}) {
 	url := ""
-	sleep := 2000
+	sleep := 1000
 	var _data interface{}
 	if len(data) > 0 {
 		_data = data[0]
