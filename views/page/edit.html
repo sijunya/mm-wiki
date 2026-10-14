@@ -7,6 +7,67 @@
         height: calc(100vh - 120px);
         min-height: 520px;
     }
+
+    /* 顶部标题与操作栏 Flexbox 自适应单行，彻底杜绝按钮挤压换行 */
+    .edit-top-bar {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 8px;
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .edit-title-wrapper {
+        flex: 1;
+        min-width: 120px;
+    }
+
+    .edit-title-input {
+        width: 100%;
+        height: 36px;
+        border-radius: 6px;
+        font-size: 14px;
+        border: 1px solid #d0d7de;
+        box-sizing: border-box;
+    }
+
+    .edit-title-input:focus {
+        border-color: #2563eb;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+    }
+
+    .edit-actions-wrapper {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-shrink: 0;
+        white-space: nowrap;
+    }
+
+    .edit-action-btn {
+        height: 36px;
+        line-height: 36px;
+        padding: 0 14px;
+        font-size: 13px;
+        font-weight: 500;
+        border-radius: 6px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        flex-shrink: 0;
+        white-space: nowrap;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+        transition: all 0.15s ease;
+    }
+
+    @media (max-width: 600px) {
+        .edit-action-btn {
+            padding: 0 8px;
+            font-size: 12px;
+        }
+    }
 </style>
 
 <div class="container-fluid" style="height: 100%">
@@ -15,14 +76,20 @@
         <div class="col-md-12">
             <input type="hidden" name="document_id" value="{{$document.document_id}}">
             <input type="hidden" id="markdown_content_input" name="document_page_editor-markdown-doc">
-            <div class="row" style="margin-bottom: 8px;">
-                <div class="col-md-9 col-lg-10">
-                    <input type="text" name="name" class="form-control" placeholder="请输入文档名称" value="{{$document.name}}" {{if eq $document.parent_id "0"}} readonly="readonly" {{end}}>
+            <div class="edit-top-bar">
+                <div class="edit-title-wrapper">
+                    <input type="text" name="name" class="form-control edit-title-input" placeholder="请输入文档名称" value="{{$document.name}}" {{if eq $document.parent_id "0"}} readonly="readonly" {{end}}>
                 </div>
-                <div class="col-md-3 col-lg-2 text-right">
-                    <button type="button" class="btn btn-primary" onclick="if(window.editor){$('#markdown_content_input').val(window.editor.getValue());} Page.ajaxSave(this.form, {{.sendEmail}}, {{.autoFollowDoc}}, true)"><i class="fa fa-save"></i> 确认保存</button>
-                    <button type="button" class="btn btn-primary" onclick="if(window.editor){$('#markdown_content_input').val(window.editor.getValue());} Page.ajaxSave(this.form, {{.sendEmail}}, {{.autoFollowDoc}}, false)"><i class="fa fa-check"></i> 直接保存</button>
-                    <button type="button" class="btn btn-default" onclick="Page.cancelSave('确定要放弃此次修改吗?', '/document/index?document_id={{$document.document_id}}')"><i class="fa fa-mail-reply"></i> 取消</button>
+                <div class="edit-actions-wrapper">
+                    <button type="button" class="btn btn-primary edit-action-btn" onclick="if(window.editor){$('#markdown_content_input').val(window.editor.getValue());} Page.ajaxSave(this.form, {{.sendEmail}}, {{.autoFollowDoc}}, true)" title="保存并填写修改说明">
+                        <i class="fa fa-save"></i> 确认保存
+                    </button>
+                    <button type="button" class="btn btn-success edit-action-btn" onclick="if(window.editor){$('#markdown_content_input').val(window.editor.getValue());} Page.ajaxSave(this.form, {{.sendEmail}}, {{.autoFollowDoc}}, false)" title="快捷直接保存 (Ctrl+S)">
+                        <i class="fa fa-check"></i> 直接保存
+                    </button>
+                    <button type="button" class="btn btn-default edit-action-btn" onclick="Page.cancelSave('确定要放弃此次修改吗?', '/document/index?document_id={{$document.document_id}}')">
+                        <i class="fa fa-mail-reply"></i> 取消
+                    </button>
                 </div>
             </div>
         </div>
