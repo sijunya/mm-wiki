@@ -1148,10 +1148,13 @@
   };
 
   MMWikiEditor.prototype.insertTextAtCursor = function (text) {
+    if (!this.editor) return;
+    this.recordPreEditState();
     var ed = this.editor;
     var start = ed.selectionStart;
     var end = ed.selectionEnd;
     ed.setRangeText(text, start, end, 'end');
+    this.pushHistory(true);
     this.renderPreview();
     this.updateLineNumbers();
   };
@@ -1758,6 +1761,17 @@
           case 'preview-only': self.togglePreviewOnly(); break;
           case 'find': self.openFindReplace(); break;
           case 'zen-mode': self.toggleZenMode(); break;
+          case 'image':
+            if (window.Page && typeof window.Page.image === 'function') {
+              var docInput = document.querySelector("input[name='document_id']");
+              var docId = docInput ? docInput.value : '';
+              if (docId) {
+                window.Page.image(docId);
+                break;
+              }
+            }
+            self.insertMarkdown('image');
+            break;
           case 'import-md':
             var input = document.getElementById('import-file');
             if (input) input.click();

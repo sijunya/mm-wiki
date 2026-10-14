@@ -3,17 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1 , user-scalable=no">
-    <title>MM-Wiki</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <title>MM-Wiki 空间资源与附件库</title>
     <link type="favicon" rel="shortcut icon" href="/static/images/favicon.ico" />
     <!-- Bootstrap core CSS -->
     <link type="text/css" rel="stylesheet" href="/static/plugins/bootstrap/css/bootstrap.min.css">
     <!-- font-awesome css-->
     <link type="text/css" rel="stylesheet" href="/static/font-awesome/css/font-awesome.min.css">
-    <!-- bootstrap-fileinput css-->
-    <link type="text/css" rel="stylesheet" href="/static/plugins/bootstrap-fileinput/css/fileinput.min.css">
-    <link type="text/css" rel="stylesheet" href="/static/plugins/bootstrap-fileinput/themes/explorer/theme.css">
-
     <!-- Custom styles for this template -->
     <link type="text/css" rel="stylesheet" href="/static/css/common.css">
 
@@ -25,22 +21,451 @@
     <script type="text/javascript" src="/static/plugins/bootstrap/js/bootstrap.min.js"></script>
     <!-- layer js -->
     <script type="text/javascript" src="/static/plugins/layui/layer/layer.js"></script>
-    <!-- bootstrap-fileinput js -->
-{{/*    <script type="text/javascript" src="/static/plugins/bootstrap-fileinput/js/fileinput.min.js"></script>*/}}
-    <script type="text/javascript" src="/static/plugins/bootstrap-fileinput/js/fileinput.js"></script>
-    <script type="text/javascript" src="/static/plugins/bootstrap-fileinput/js/locales/zh.js"></script>
-    <script type="text/javascript" src="/static/plugins/bootstrap-fileinput/themes/explorer/theme.js"></script>
-    {{/*<script type="text/javascript" src="/static/plugins/bootstrap-fileinput/themes/explorer-fa/theme.min.js"></script>*/}}
 
     <script src="/static/js/common/common.js"></script>
     <script src="/static/js/common/date.js"></script>
     <script src="/static/js/common/form.js"></script>
     <script src="/static/js/common/layers.js"></script>
 
-    <script type="text/javascript" src="/static/js/modules/page.js"></script>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --primary-light: #eff6ff;
+            --bg-page: #f8fafc;
+            --bg-card: #ffffff;
+            --border: #e2e8f0;
+            --border-hover: #cbd5e1;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --danger: #ef4444;
+            --danger-light: #fef2f2;
+            --success: #10b981;
+        }
 
+        body#frame-body {
+            background-color: var(--bg-page);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            color: var(--text-main);
+            margin: 0;
+            padding: 0;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* 滚动条美化 */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        .asset-shell {
+            padding: 16px 20px;
+            max-width: 100%;
+        }
+
+        /* 顶部 Header */
+        .asset-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 14px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .asset-title-area {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .asset-title-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 9px;
+            background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+
+        .asset-title-text h3 {
+            margin: 0 0 2px 0;
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .asset-title-badges {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .badge-space, .badge-doc {
+            background: #f1f5f9;
+            padding: 2px 8px;
+            border-radius: 5px;
+            font-weight: 500;
+            color: #334155;
+            border: 1px solid var(--border);
+            max-width: 220px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        /* 选项卡 (附件 vs 图片) */
+        .asset-nav-tabs {
+            display: inline-flex;
+            background: #e2e8f0;
+            padding: 3px;
+            border-radius: 8px;
+            gap: 2px;
+        }
+
+        .asset-tab-btn {
+            padding: 5px 14px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-muted);
+            border-radius: 6px;
+            text-decoration: none !important;
+            transition: all 0.15s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .asset-tab-btn:hover {
+            color: var(--text-main);
+        }
+
+        .asset-tab-btn.active {
+            background: #ffffff;
+            color: var(--primary);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+        }
+
+        /* 常用工具栏 (范围切换、搜索、上传开关) */
+        .asset-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+
+        .asset-scope-segmented {
+            display: inline-flex;
+            background: #ffffff;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 2px;
+        }
+
+        .scope-pill {
+            padding: 4px 12px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-muted);
+            border-radius: 6px;
+            text-decoration: none !important;
+            transition: all 0.15s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .scope-pill:hover {
+            color: var(--text-main);
+        }
+
+        .scope-pill.active {
+            background: var(--primary-light);
+            color: var(--primary);
+        }
+
+        .badge-count {
+            font-size: 11px;
+            padding: 1px 6px;
+            border-radius: 10px;
+            background: #f1f5f9;
+            color: #475569;
+        }
+
+        .scope-pill.active .badge-count {
+            background: #dbeafe;
+            color: #1d4ed8;
+        }
+
+        .asset-toolbar-right {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .asset-search-wrapper {
+            position: relative;
+        }
+
+        .asset-search-wrapper i {
+            position: absolute;
+            left: 10px;
+            top: 10px;
+            color: #94a3b8;
+            font-size: 13px;
+        }
+
+        .asset-search-input {
+            width: 200px;
+            height: 32px;
+            padding: 4px 10px 4px 30px;
+            font-size: 12px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: #ffffff;
+            color: var(--text-main);
+            outline: none;
+            transition: all 0.15s ease;
+        }
+
+        .asset-search-input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+        }
+
+        .btn-upload-toggle {
+            height: 32px;
+            padding: 0 12px;
+            font-size: 12px;
+            font-weight: 600;
+            color: #ffffff;
+            background: var(--primary);
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: background 0.15s ease;
+        }
+
+        .btn-upload-toggle:hover {
+            background: var(--primary-hover);
+        }
+
+        /* 极简现代拖拽上传框 */
+        .asset-dropzone {
+            display: none;
+            background: #ffffff;
+            border: 2px dashed #cbd5e1;
+            border-radius: 10px;
+            padding: 18px 16px;
+            text-align: center;
+            margin-bottom: 14px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .asset-dropzone.show {
+            display: block;
+        }
+
+        .asset-dropzone:hover, .asset-dropzone.dragover {
+            border-color: var(--primary);
+            background: var(--primary-light);
+        }
+
+        .dropzone-icon {
+            font-size: 26px;
+            color: #94a3b8;
+            margin-bottom: 4px;
+        }
+
+        .asset-dropzone:hover .dropzone-icon {
+            color: var(--primary);
+        }
+
+        .dropzone-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-main);
+            margin-bottom: 2px;
+        }
+
+        .dropzone-hint {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin: 0;
+        }
+
+        .upload-progress {
+            margin-top: 10px;
+            height: 6px;
+            background: #e2e8f0;
+            border-radius: 3px;
+            overflow: hidden;
+            display: none;
+        }
+
+        .upload-progress-bar {
+            height: 100%;
+            background: var(--primary);
+            width: 0%;
+            transition: width 0.2s ease;
+        }
+
+        /* 空状态提示 */
+        .asset-empty-state {
+            padding: 48px 16px;
+            text-align: center;
+            background: #ffffff;
+            border-radius: 10px;
+            border: 1px dashed var(--border);
+        }
+
+        .asset-empty-state .empty-icon {
+            font-size: 40px;
+            color: #cbd5e1;
+            margin-bottom: 8px;
+        }
+
+        .asset-empty-state h4 {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text-main);
+            margin: 0 0 4px 0;
+        }
+
+        .asset-empty-state p {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin: 0;
+        }
+
+        /* 优雅 Toast 提示 */
+        .asset-toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: rgba(15, 23, 42, 0.88);
+            color: #ffffff;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            backdrop-filter: blur(4px);
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.2s ease;
+            z-index: 9999;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .asset-toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+    </style>
 </head>
 <body id="frame-body">
+<div class="asset-shell">
 {{.LayoutContent}}
+</div>
+
+<div id="asset-toast" class="asset-toast"></div>
+
+<script>
+    // Toast 通知工具
+    function showAssetToast(msg) {
+        var el = document.getElementById('asset-toast');
+        if (!el) return;
+        el.textContent = msg;
+        el.classList.add('show');
+        setTimeout(function () {
+            el.classList.remove('show');
+        }, 2000);
+    }
+
+    // 复制 Markdown 语法到剪贴板
+    function copyMarkdown(text) {
+        if (navigator.clipboard) {
+            navigator.clipboard.writeText(text).then(function () {
+                showAssetToast('✓ 已复制 Markdown 语法到剪贴板');
+            });
+        } else {
+            var input = document.createElement('textarea');
+            input.value = text;
+            document.body.appendChild(input);
+            input.select();
+            document.execCommand('copy');
+            document.body.removeChild(input);
+            showAssetToast('✓ 已复制 Markdown 语法到剪贴板');
+        }
+    }
+
+    // 一键插入到 MMWikiEditor
+    function insertToEditor(markdownText) {
+        var inserted = false;
+        if (parent && parent.editor && typeof parent.editor.insertTextAtCursor === 'function') {
+            parent.editor.insertTextAtCursor('\n' + markdownText + '\n');
+            inserted = true;
+        }
+        if (inserted) {
+            showAssetToast('⚡ 已成功插入到文档当前光标处！');
+        } else {
+            copyMarkdown(markdownText);
+            showAssetToast('✓ 已复制语法到剪贴板（未检测到活动编辑器）');
+        }
+    }
+
+    // 实时搜索过滤
+    function initAssetLiveSearch() {
+        var input = document.getElementById('asset-search-input');
+        if (!input) return;
+        input.addEventListener('input', function () {
+            var q = this.value.trim().toLowerCase();
+            var items = document.querySelectorAll('.asset-item-node');
+            var visibleCount = 0;
+            items.forEach(function (item) {
+                var name = (item.dataset.name || '').toLowerCase();
+                var user = (item.dataset.user || '').toLowerCase();
+                var doc = (item.dataset.doc || '').toLowerCase();
+                if (!q || name.indexOf(q) !== -1 || user.indexOf(q) !== -1 || doc.indexOf(q) !== -1) {
+                    item.style.display = '';
+                    visibleCount++;
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+            var emptyNotice = document.getElementById('asset-search-empty');
+            if (emptyNotice) {
+                emptyNotice.style.display = (visibleCount === 0 && items.length > 0) ? 'block' : 'none';
+            }
+        });
+    }
+
+    $(function() {
+        initAssetLiveSearch();
+    });
+</script>
 </body>
 </html>

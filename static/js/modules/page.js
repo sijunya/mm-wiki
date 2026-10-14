@@ -198,20 +198,40 @@ var Page = {
     },
 
     /**
-     * upload attachment
+     * upload / manage attachment
      */
-    attachment: function (documentId) {
+    attachment: function (documentId, scope) {
+        scope = scope || 'doc';
         layer.open({
             type: 2,
             skin: Layers.skin,
-            title: '<strong>附件</strong>',
+            title: '<i class="fa fa-paperclip" style="color: #2563eb; margin-right: 6px;"></i><strong>空间资源与附件库</strong>',
             shadeClose: true,
-            shade : 0.1,
-            resize: false,
-            maxmin: false,
-            area: ["900px", "500px"],
-            content: "/attachment/page?document_id="+documentId,
-            padding:"10px"
+            shade : 0.2,
+            resize: true,
+            maxmin: true,
+            area: ["980px", "640px"],
+            content: "/attachment/page?document_id=" + documentId + "&scope=" + scope,
+            padding: "0"
+        });
+    },
+
+    /**
+     * upload / manage images
+     */
+    image: function (documentId, scope) {
+        scope = scope || 'doc';
+        layer.open({
+            type: 2,
+            skin: Layers.skin,
+            title: '<i class="fa fa-picture-o" style="color: #2563eb; margin-right: 6px;"></i><strong>空间图片与媒体库</strong>',
+            shadeClose: true,
+            shade : 0.2,
+            resize: true,
+            maxmin: true,
+            area: ["980px", "640px"],
+            content: "/attachment/image?document_id=" + documentId + "&scope=" + scope,
+            padding: "0"
         });
     },
 

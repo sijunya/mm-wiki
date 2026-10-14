@@ -13,6 +13,20 @@ type AttachmentController struct {
 	BaseController
 }
 
+func formatFileSize(bytes int64) string {
+	if bytes <= 0 {
+		return "-"
+	}
+	if bytes < 1024 {
+		return fmt.Sprintf("%d B", bytes)
+	} else if bytes < 1024*1024 {
+		return fmt.Sprintf("%.1f KB", float64(bytes)/1024.0)
+	} else if bytes < 1024*1024*1024 {
+		return fmt.Sprintf("%.1f MB", float64(bytes)/(1024.0*1024.0))
+	}
+	return fmt.Sprintf("%.2f GB", float64(bytes)/(1024.0*1024.0*1024.0))
+}
+
 func (this *AttachmentController) Page() {
 
 	documentId := this.GetString("document_id", "")
@@ -43,33 +57,86 @@ func (this *AttachmentController) Page() {
 		this.ViewError("您没有权限访问该空间下的文档！")
 	}
 
-	// get document attachments
-	attachments, err := models.AttachmentModel.GetAttachmentsByDocumentIdAndSource(documentId, models.Attachment_Source_Default)
+	scope := this.GetString("scope", "doc")
+	if scope != "space" {
+		scope = "doc"
+	}
+
+	// 1. 获取当前文档附件列表与数量
+	docAttachments, err := models.AttachmentModel.GetAttachmentsByDocumentIdAndSource(documentId, models.Attachment_Source_Default)
 	if err != nil {
 		this.ErrorLog("查找文档 " + documentId + " 附件失败：" + err.Error())
 		this.ViewError("查找文档附件失败！")
 	}
+	docCount := len(docAttachments)
 
-	// get username
+	// 2. 获取本空间全部文档与空间附件列表与数量
+	spaceDocuments, err := models.DocumentModel.GetDocumentsBySpaceId(spaceId)
+	if err != nil {
+		this.ErrorLog("查找空间文档失败：" + err.Error())
+		this.ViewError("查找空间文档失败！")
+	}
+	docNameMap := make(map[string]string)
+	allDocIds := []string{}
+	for _, doc := range spaceDocuments {
+		dId := doc["document_id"]
+		allDocIds = append(allDocIds, dId)
+		docNameMap[dId] = doc["name"]
+	}
+
+	spaceAttachments, err := models.AttachmentModel.GetAttachmentsByDocumentIdsAndSource(allDocIds, models.Attachment_Source_Default)
+	if err != nil {
+		this.ErrorLog("查找空间附件失败：" + err.Error())
+		this.ViewError("查找空间附件失败！")
+	}
+	spaceCount := len(spaceAttachments)
+
+	// 根据 scope 决定渲染列表
+	var attachments []map[string]string
+	if scope == "space" {
+		attachments = spaceAttachments
+	} else {
+		attachments = docAttachments
+	}
+
+	// 填充所属文档名与物理文件大小
 	userIds := []string{}
 	for _, attachment := range attachments {
 		userIds = append(userIds, attachment["user_id"])
+		dName := docNameMap[attachment["document_id"]]
+		if dName == "" {
+			dName = document["name"]
+		}
+		attachment["document_name"] = dName
+
+		fullPath := path.Join(app.DocumentAbsDir, attachment["path"])
+		if fi, sErr := os.Stat(fullPath); sErr == nil {
+			attachment["file_size"] = formatFileSize(fi.Size())
+		} else {
+			attachment["file_size"] = "-"
+		}
 	}
+
+	// 获取上传用户名
 	users, err := models.UserModel.GetUsersByUserIds(userIds)
-	if err != nil {
-		this.ErrorLog("查找文档 " + documentId + " 附件失败：" + err.Error())
-		this.ViewError("查找文档附件失败！")
-	}
-	usernameMap := make(map[string]string)
-	for _, user := range users {
-		usernameMap[user["user_id"]] = user["username"]
-	}
-	for _, attachment := range attachments {
-		attachment["username"] = usernameMap[attachment["user_id"]]
+	if err == nil {
+		usernameMap := make(map[string]string)
+		for _, user := range users {
+			usernameMap[user["user_id"]] = user["username"]
+		}
+		for _, attachment := range attachments {
+			attachment["username"] = usernameMap[attachment["user_id"]]
+		}
 	}
 
 	this.Data["attachments"] = attachments
 	this.Data["document_id"] = documentId
+	this.Data["document"] = document
+	this.Data["space_id"] = spaceId
+	this.Data["space"] = space
+	this.Data["scope"] = scope
+	this.Data["doc_count"] = docCount
+	this.Data["space_count"] = spaceCount
 	this.Data["is_upload"] = isEditor
 	this.Data["is_delete"] = isManager
 	this.viewLayout("attachment/page", "attachment")
@@ -163,8 +230,9 @@ func (this *AttachmentController) Upload() {
 		this.uploadJsonError("附件信息保存失败")
 	}
 
+	scope := this.GetString("scope", "doc")
 	this.InfoLog(fmt.Sprintf("文档 %s 上传附件 %s 成功", documentId, h.Filename))
-	this.jsonSuccess("附件上传成功", "", "/attachment/page?document_id="+documentId)
+	this.jsonSuccess("附件上传成功", "", fmt.Sprintf("/attachment/page?document_id=%s&scope=%s", documentId, scope))
 }
 
 func (this *AttachmentController) Delete() {
@@ -225,9 +293,10 @@ func (this *AttachmentController) Delete() {
 		_, _ = models.LogDocumentModel.UpdateAction(userId, documentId, "删除了附件 "+attachmentName, spaceId)
 	}(this.UserId, documentId, attachmentName, spaceId)
 
-	redirect := fmt.Sprintf("/attachment/page?document_id=%s", documentId)
+	scope := this.GetString("scope", "doc")
+	redirect := fmt.Sprintf("/attachment/page?document_id=%s&scope=%s", documentId, scope)
 	if attachmentSource == fmt.Sprintf("%d", models.Attachment_Source_Image) {
-		redirect = fmt.Sprintf("/attachment/image?document_id=%s", documentId)
+		redirect = fmt.Sprintf("/attachment/image?document_id=%s&scope=%s", documentId, scope)
 	}
 
 	this.InfoLog("删除文档 " + documentId + " 附件 " + attachmentName + " 成功")
@@ -310,33 +379,87 @@ func (this *AttachmentController) Image() {
 		this.ViewError("您没有权限访问该空间下的文档！")
 	}
 
-	// get document attachment images
-	attachments, err := models.AttachmentModel.GetAttachmentsByDocumentIdAndSource(documentId, models.Attachment_Source_Image)
+	scope := this.GetString("scope", "doc")
+	if scope != "space" {
+		scope = "doc"
+	}
+
+	// 1. 获取当前文档的图片列表与数量
+	docImages, err := models.AttachmentModel.GetAttachmentsByDocumentIdAndSource(documentId, models.Attachment_Source_Image)
 	if err != nil {
 		this.ErrorLog("查找文档 " + documentId + " 图片失败：" + err.Error())
 		this.ViewError("查找文档图片失败！")
 	}
+	docCount := len(docImages)
 
-	// get username
+	// 2. 获取本空间全部文档与空间图片列表与数量
+	spaceDocuments, err := models.DocumentModel.GetDocumentsBySpaceId(spaceId)
+	if err != nil {
+		this.ErrorLog("查找空间文档失败：" + err.Error())
+		this.ViewError("查找空间文档失败！")
+	}
+	docNameMap := make(map[string]string)
+	allDocIds := []string{}
+	for _, doc := range spaceDocuments {
+		dId := doc["document_id"]
+		allDocIds = append(allDocIds, dId)
+		docNameMap[dId] = doc["name"]
+	}
+
+	spaceImages, err := models.AttachmentModel.GetAttachmentsByDocumentIdsAndSource(allDocIds, models.Attachment_Source_Image)
+	if err != nil {
+		this.ErrorLog("查找空间图片失败：" + err.Error())
+		this.ViewError("查找空间图片失败！")
+	}
+	spaceCount := len(spaceImages)
+
+	// 根据 scope 决定渲染列表
+	var attachments []map[string]string
+	if scope == "space" {
+		attachments = spaceImages
+	} else {
+		attachments = docImages
+	}
+
+	// 补充所属文档名称与文件大小
 	userIds := []string{}
 	for _, attachment := range attachments {
 		userIds = append(userIds, attachment["user_id"])
+		dName := docNameMap[attachment["document_id"]]
+		if dName == "" {
+			dName = document["name"]
+		}
+		attachment["document_name"] = dName
+
+		fullPath := path.Join(app.DocumentAbsDir, attachment["path"])
+		if fi, sErr := os.Stat(fullPath); sErr == nil {
+			attachment["file_size"] = formatFileSize(fi.Size())
+		} else {
+			attachment["file_size"] = "-"
+		}
 	}
+
+	// 获取用户名映射
 	users, err := models.UserModel.GetUsersByUserIds(userIds)
-	if err != nil {
-		this.ErrorLog("查找文档 " + documentId + " 图片失败：" + err.Error())
-		this.ViewError("查找文档图片失败！")
-	}
-	usernameMap := make(map[string]string)
-	for _, user := range users {
-		usernameMap[user["user_id"]] = user["username"]
-	}
-	for _, attachment := range attachments {
-		attachment["username"] = usernameMap[attachment["user_id"]]
+	if err == nil {
+		usernameMap := make(map[string]string)
+		for _, user := range users {
+			usernameMap[user["user_id"]] = user["username"]
+		}
+		for _, attachment := range attachments {
+			attachment["username"] = usernameMap[attachment["user_id"]]
+		}
 	}
 
 	this.Data["attachments"] = attachments
 	this.Data["document_id"] = documentId
+	this.Data["document"] = document
+	this.Data["space_id"] = spaceId
+	this.Data["space"] = space
+	this.Data["scope"] = scope
+	this.Data["doc_count"] = docCount
+	this.Data["space_count"] = spaceCount
+	this.Data["is_upload"] = isEditor
 	this.Data["is_delete"] = isEditor
 	this.viewLayout("attachment/image", "attachment")
 }

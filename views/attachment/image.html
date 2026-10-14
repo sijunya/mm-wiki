@@ -1,43 +1,519 @@
-<div class="container-fluid">{{$attachments := .attachments}}{{$documentId := .document_id}}
-    <div id="failedBox" style="margin: 0 0 6px 0"></div>{{$isDelete := .is_delete}}
-    <div class="panel panel-default">
-        <div class="panel-body">
-            <div class="row">
-                <ul class="nav nav-tabs">
-                    <li><a href="/attachment/page?document_id={{$documentId}}">附件</a></li>
-                    <li class="active"><a href="/attachment/image?document_id={{$documentId}}">图片</a></li>
-                </ul>
+{{$attachments := .attachments}}
+{{$documentId := .document_id}}
+{{$spaceId := .space_id}}
+{{$document := .document}}
+{{$space := .space}}
+{{$scope := .scope}}
+{{$docCount := .doc_count}}
+{{$spaceCount := .space_count}}
+{{$isUpload := .is_upload}}
+{{$isDelete := .is_delete}}
+
+<style>
+    /* 图片栅格布局 */
+    .image-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+        gap: 16px;
+    }
+
+    .image-card {
+        background: #ffffff;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+        position: relative;
+    }
+
+    .image-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+        border-color: #cbd5e1;
+    }
+
+    /* 图片预览区与棋盘背景 */
+    .image-thumb-wrapper {
+        position: relative;
+        width: 100%;
+        height: 125px;
+        background-color: #f8fafc;
+        background-image: linear-gradient(45deg, #f1f5f9 25%, transparent 25%),
+                          linear-gradient(-45deg, #f1f5f9 25%, transparent 25%),
+                          linear-gradient(45deg, transparent 75%, #f1f5f9 75%),
+                          linear-gradient(-45deg, transparent 75%, #f1f5f9 75%);
+        background-size: 16px 16px;
+        background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+    }
+
+    .image-thumb-wrapper img {
+        max-width: 90%;
+        max-height: 90%;
+        object-fit: contain;
+        transition: transform 0.2s ease;
+    }
+
+    .image-card:hover .image-thumb-wrapper img {
+        transform: scale(1.04);
+    }
+
+    /* 悬停操作浮层 */
+    .image-actions-overlay {
+        position: absolute;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.65);
+        backdrop-filter: blur(2px);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        opacity: 0;
+        transition: opacity 0.2s ease;
+        padding: 10px;
+    }
+
+    .image-card:hover .image-actions-overlay {
+        opacity: 1;
+    }
+
+    .overlay-btn-group {
+        display: flex;
+        gap: 6px;
+    }
+
+    .btn-action-primary {
+        background: var(--primary);
+        color: #ffffff;
+        border: none;
+        border-radius: 6px;
+        padding: 6px 14px;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        transition: background 0.15s ease, transform 0.1s ease;
+        box-shadow: 0 2px 6px rgba(37, 99, 235, 0.4);
+    }
+
+    .btn-action-primary:hover {
+        background: var(--primary-hover);
+        transform: translateY(-1px);
+    }
+
+    .btn-action-icon {
+        width: 30px;
+        height: 30px;
+        background: rgba(255, 255, 255, 0.9);
+        color: #334155;
+        border: none;
+        border-radius: 6px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 13px;
+        cursor: pointer;
+        transition: all 0.15s ease;
+    }
+
+    .btn-action-icon:hover {
+        background: #ffffff;
+        color: var(--primary);
+        transform: translateY(-1px);
+    }
+
+    .btn-action-icon.btn-delete:hover {
+        color: var(--danger);
+        background: #fee2e2;
+    }
+
+    /* 卡片底部信息 */
+    .image-info {
+        padding: 10px 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        background: #ffffff;
+        border-top: 1px solid var(--border);
+        flex-grow: 1;
+    }
+
+    .image-name {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--text-main);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        line-height: 1.4;
+    }
+
+    .image-meta-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 11px;
+        color: var(--text-muted);
+    }
+
+    .image-origin-badge {
+        font-size: 11px;
+        color: #475569;
+        background: #f1f5f9;
+        padding: 2px 6px;
+        border-radius: 4px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: inline-block;
+        max-width: 100%;
+        margin-top: 2px;
+    }
+
+    /* Lightbox 大图预览 */
+    .lightbox-modal {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.85);
+        backdrop-filter: blur(6px);
+        z-index: 10000;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+    }
+
+    .lightbox-modal.active {
+        display: flex;
+    }
+
+    .lightbox-content {
+        position: relative;
+        max-width: 90vw;
+        max-height: 88vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .lightbox-img {
+        max-width: 100%;
+        max-height: 80vh;
+        border-radius: 8px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+        background: #ffffff;
+        object-fit: contain;
+    }
+
+    .lightbox-caption {
+        color: #f8fafc;
+        font-size: 13px;
+        margin-top: 12px;
+        font-weight: 500;
+        text-align: center;
+        text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+    }
+
+    .lightbox-close {
+        position: absolute;
+        top: -36px;
+        right: 0;
+        color: #ffffff;
+        font-size: 24px;
+        cursor: pointer;
+        background: none;
+        border: none;
+        opacity: 0.8;
+        transition: opacity 0.15s ease;
+    }
+
+    .lightbox-close:hover {
+        opacity: 1;
+    }
+</style>
+
+<!-- 顶部导航与信息栏 -->
+<div class="asset-header">
+    <div class="asset-title-area">
+        <div class="asset-title-icon">
+            <i class="fa fa-picture-o"></i>
+        </div>
+        <div class="asset-title-text">
+            <h3>空间资源与附件库</h3>
+            <div class="asset-title-badges">
+                <span class="badge-space" title="所属空间：{{$space.name}}"><i class="fa fa-cubes"></i> {{$space.name}}</span>
+                <span class="badge-doc" title="当前文档：{{$document.name}}"><i class="fa fa-file-text-o"></i> {{$document.name}}</span>
             </div>
         </div>
-        <div class="panel-body">
-            <table class="table">
-                <thead>
-                <tr>
-                    <td class="text-left"><strong>图片</strong></td>
-                    <td class="w15p text-left"><strong>上传用户</strong></td>
-                    <td class="w20p text-left"><strong>上传时间</strong></td>
-                    <td class="w11p center"><strong>操作</strong></td>
-                </tr>
-                </thead>
-                <tbody>
-                {{range $attachment := $attachments}}
-                    <tr>
-                        <td>
-                            <a target="_blank" href="/{{$attachment.path}}" class="thumbnail" style="width: 100px;height: 80px;margin-bottom: 0">
-                                <img src="/{{$attachment.path}}">
-                            </a>
-                        </td>
-                        <td>{{$attachment.username}}</td>
-                        <td>{{dateFormat $attachment.create_time "Y-m-d H:i:s"}}</td>
-                        <td class="center">
-                            {{if eq $isDelete true}}
-                            <a onclick="Layers.confirm('确定删除图片吗？', '/attachment/delete?attachment_id={{$attachment.attachment_id}}');"><i class="glyphicon glyphicon-trash"></i></a>
-                            {{end}}
-                        </td>
-                    </tr>
-                {{end}}
-                </tbody>
-            </table>
-        </div>
+    </div>
+    <div class="asset-nav-tabs">
+        <a href="/attachment/page?document_id={{$documentId}}&scope={{$scope}}" class="asset-tab-btn">
+            <i class="fa fa-paperclip"></i> 文件附件
+        </a>
+        <a href="/attachment/image?document_id={{$documentId}}&scope={{$scope}}" class="asset-tab-btn active">
+            <i class="fa fa-picture-o"></i> 图片资源
+        </a>
     </div>
 </div>
+
+<!-- 工具栏：范围选择、搜索、上传按钮 -->
+<div class="asset-toolbar">
+    <div class="asset-scope-segmented">
+        <a href="/attachment/image?document_id={{$documentId}}&scope=doc" class="scope-pill {{if eq $scope "doc"}}active{{end}}">
+            <i class="fa fa-file-image-o"></i> 当前文档图片
+            <span class="badge-count">{{$docCount}}</span>
+        </a>
+        <a href="/attachment/image?document_id={{$documentId}}&scope=space" class="scope-pill {{if eq $scope "space"}}active{{end}}">
+            <i class="fa fa-database"></i> 本空间全库共享
+            <span class="badge-count">{{$spaceCount}}</span>
+        </a>
+    </div>
+
+    <div class="asset-toolbar-right">
+        <div class="asset-search-wrapper">
+            <i class="fa fa-search"></i>
+            <input type="text" id="asset-search-input" class="asset-search-input" placeholder="按文件名/上传者/来源过滤...">
+        </div>
+        {{if eq $isUpload true}}
+        <button type="button" class="btn-upload-toggle" id="btn-toggle-upload" onclick="toggleUploadDropzone()">
+            <i class="fa fa-cloud-upload"></i> 上传图片
+        </button>
+        {{end}}
+    </div>
+</div>
+
+<!-- 拖拽上传区域 (可展开折叠) -->
+{{if eq $isUpload true}}
+<div id="asset-dropzone" class="asset-dropzone" onclick="triggerFileInput()">
+    <input type="file" id="file-uploader" accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml" multiple style="display:none" onchange="handleFilesSelected(this.files)">
+    <div class="dropzone-icon">
+        <i class="fa fa-cloud-upload"></i>
+    </div>
+    <div class="dropzone-title">点击或拖拽图片文件到此处上传到当前文档</div>
+    <p class="dropzone-hint">支持 JPG、PNG、GIF、WebP、SVG 格式，上传后可立即一键插入光标处</p>
+    <div id="upload-progress" class="upload-progress">
+        <div id="upload-progress-bar" class="upload-progress-bar"></div>
+    </div>
+</div>
+{{end}}
+
+<!-- 图片列表内容 -->
+<div id="image-gallery-container">
+    {{if len $attachments}}
+    <div class="image-grid" id="image-grid-root">
+        {{range $attachment := $attachments}}
+        <div class="image-card asset-item-node" 
+             data-name="{{$attachment.name}}" 
+             data-user="{{$attachment.username}}" 
+             data-doc="{{$attachment.document_name}}">
+            <div class="image-thumb-wrapper">
+                <img src="/{{$attachment.path}}" alt="{{$attachment.name}}" loading="lazy">
+                
+                <div class="image-actions-overlay">
+                    <button type="button" class="btn-action-primary" onclick="insertImageToDoc('/{{$attachment.path}}', '{{$attachment.name}}')">
+                        <i class="fa fa-bolt"></i> 插入文档
+                    </button>
+                    <div class="overlay-btn-group">
+                        <button type="button" class="btn-action-icon" title="复制 Markdown 语法" onclick="copyMarkdown('![{{$attachment.name}}](/{{$attachment.path}})')">
+                            <i class="fa fa-copy"></i>
+                        </button>
+                        <button type="button" class="btn-action-icon" title="查看大图" onclick="openLightbox('/{{$attachment.path}}', '{{$attachment.name}}')">
+                            <i class="fa fa-search-plus"></i>
+                        </button>
+                        {{if eq $isDelete true}}
+                        <button type="button" class="btn-action-icon btn-delete" title="删除图片" onclick="deleteAttachment('{{$attachment.attachment_id}}', '{{$attachment.name}}')">
+                            <i class="fa fa-trash-o"></i>
+                        </button>
+                        {{end}}
+                    </div>
+                </div>
+            </div>
+
+            <div class="image-info">
+                <div class="image-name" title="{{$attachment.name}}">{{$attachment.name}}</div>
+                <div class="image-meta-row">
+                    <span>{{$attachment.file_size}}</span>
+                    <span>{{$attachment.username}}</span>
+                </div>
+                {{if eq $scope "space"}}
+                <div class="image-origin-badge" title="来源文档：{{$attachment.document_name}}">
+                    <i class="fa fa-file-text-o"></i> {{$attachment.document_name}}
+                </div>
+                {{end}}
+            </div>
+        </div>
+        {{end}}
+    </div>
+    {{else}}
+    <div class="asset-empty-state">
+        <div class="empty-icon"><i class="fa fa-picture-o"></i></div>
+        <h4>暂无图片资源</h4>
+        <p>{{if eq $scope "doc"}}当前文档尚未上传任何图片，点击右上角【上传图片】开始添加{{else}}当前空间下尚无可复用的图片资源{{end}}</p>
+    </div>
+    {{end}}
+
+    <div id="asset-search-empty" class="asset-empty-state" style="display:none; margin-top: 10px;">
+        <div class="empty-icon"><i class="fa fa-search"></i></div>
+        <h4>未找到匹配的图片</h4>
+        <p>没有找到符合搜索条件的图片文件，请尝试更换关键词</p>
+    </div>
+</div>
+
+<!-- Lightbox Modal -->
+<div id="lightbox-modal" class="lightbox-modal" onclick="closeLightbox(event)">
+    <div class="lightbox-content">
+        <button class="lightbox-close" onclick="closeLightbox(event)">&times;</button>
+        <img id="lightbox-img" class="lightbox-img" src="" alt="大图预览">
+        <div id="lightbox-caption" class="lightbox-caption"></div>
+    </div>
+</div>
+
+<script>
+    // 展开/收起上传框
+    function toggleUploadDropzone() {
+        var dz = document.getElementById('asset-dropzone');
+        if (!dz) return;
+        dz.classList.toggle('show');
+    }
+
+    function triggerFileInput() {
+        document.getElementById('file-uploader').click();
+    }
+
+    // 拖拽文件进入 dropzone
+    var dropzone = document.getElementById('asset-dropzone');
+    if (dropzone) {
+        ['dragenter', 'dragover'].forEach(function(evt) {
+            dropzone.addEventListener(evt, function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                dropzone.classList.add('dragover');
+            });
+        });
+        ['dragleave', 'drop'].forEach(function(evt) {
+            dropzone.addEventListener(evt, function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                dropzone.classList.remove('dragover');
+            });
+        });
+        dropzone.addEventListener('drop', function(e) {
+            var dt = e.dataTransfer;
+            if (dt && dt.files && dt.files.length) {
+                handleFilesSelected(dt.files);
+            }
+        });
+    }
+
+    // 上传文件处理
+    function handleFilesSelected(files) {
+        if (!files || !files.length) return;
+        var progressEl = document.getElementById('upload-progress');
+        var barEl = document.getElementById('upload-progress-bar');
+        if (progressEl) progressEl.style.display = 'block';
+        if (barEl) barEl.style.width = '20%';
+
+        var docId = '{{$documentId}}';
+        var uploadNext = function(index) {
+            if (index >= files.length) {
+                if (barEl) barEl.style.width = '100%';
+                showAssetToast('✓ 所有图片上传完成！');
+                setTimeout(function() {
+                    window.location.reload();
+                }, 600);
+                return;
+            }
+
+            var file = files[index];
+            var formData = new FormData();
+            formData.append('document_id', docId);
+            formData.append('editormd-image-file', file);
+
+            var pct = Math.round(((index + 1) / files.length) * 90);
+            if (barEl) barEl.style.width = pct + '%';
+
+            $.ajax({
+                url: '/image/upload?document_id=' + docId,
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                dataType: 'json',
+                success: function(res) {
+                    if (res && res.success === 1) {
+                        uploadNext(index + 1);
+                    } else {
+                        var errMsg = (res && res.message) ? res.message : '上传失败';
+                        showAssetToast('❌ ' + file.name + ': ' + errMsg);
+                        uploadNext(index + 1);
+                    }
+                },
+                error: function(err) {
+                    showAssetToast('❌ 上传网络异常');
+                    uploadNext(index + 1);
+                }
+            });
+        };
+
+        uploadNext(0);
+    }
+
+    // 插入文档
+    function insertImageToDoc(path, name) {
+        var md = '![' + name + '](' + path + ')';
+        insertToEditor(md);
+    }
+
+    // 查看大图 Lightbox
+    function openLightbox(url, name) {
+        var modal = document.getElementById('lightbox-modal');
+        var img = document.getElementById('lightbox-img');
+        var cap = document.getElementById('lightbox-caption');
+        img.src = url;
+        cap.textContent = name;
+        modal.classList.add('active');
+    }
+
+    function closeLightbox(e) {
+        if (e.target.id === 'lightbox-modal' || e.target.classList.contains('lightbox-close')) {
+            document.getElementById('lightbox-modal').classList.remove('active');
+        }
+    }
+
+    // 删除图片
+    function deleteAttachment(id, name) {
+        layer.confirm('确定要彻底删除图片 "' + name + '" 吗？此操作不可恢复。', {
+            title: '删除确认',
+            btn: ['确认删除', '取消'],
+            icon: 3
+        }, function(index) {
+            layer.close(index);
+            $.ajax({
+                url: '/attachment/delete?attachment_id=' + id + '&scope={{$scope}}',
+                type: 'POST',
+                dataType: 'json',
+                success: function(res) {
+                    if (res && res.code === 1) {
+                        showAssetToast('✓ 已删除图片');
+                        setTimeout(function() {
+                            window.location.reload();
+                        }, 500);
+                    } else {
+                        layer.msg((res && res.message) || '删除失败', {icon: 2});
+                    }
+                },
+                error: function() {
+                    layer.msg('请求出错，请重试', {icon: 2});
+                }
+            });
+        });
+    }
+</script>

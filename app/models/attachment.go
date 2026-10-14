@@ -111,11 +111,32 @@ func (a *Attachment) GetAttachmentsByDocumentId(documentId string) (attachments 
 
 // get attachments by document_id
 func (a *Attachment) GetAttachmentsByDocumentIds(documentIds []string) (attachments []map[string]string, err error) {
+	if len(documentIds) == 0 {
+		return []map[string]string{}, nil
+	}
 	db := G.DB()
 	var rs *mysql.ResultSet
 	rs, err = db.Query(db.AR().From(Table_Attachment_Name).Where(map[string]interface{}{
 		"document_id": documentIds,
 	}))
+	if err != nil {
+		return
+	}
+	attachments = rs.Rows()
+	return
+}
+
+// get attachments by document_ids and source (0: attachment, 1: image)
+func (a *Attachment) GetAttachmentsByDocumentIdsAndSource(documentIds []string, source int) (attachments []map[string]string, err error) {
+	if len(documentIds) == 0 {
+		return []map[string]string{}, nil
+	}
+	db := G.DB()
+	var rs *mysql.ResultSet
+	rs, err = db.Query(db.AR().From(Table_Attachment_Name).Where(map[string]interface{}{
+		"document_id": documentIds,
+		"source":      source,
+	}).OrderBy("attachment_id", "desc"))
 	if err != nil {
 		return
 	}

@@ -1,97 +1,473 @@
-<div class="container-fluid">{{$attachments := .attachments}}{{$documentId := .document_id}}
-    <div id="failedBox" style="margin: 0 0 6px 0"></div>{{$isDelete := .is_delete}}{{$isUpload := .is_upload}}
-    <div class="panel panel-default">
-        <div class="panel-body">
-            <div class="row">
-                <ul class="nav nav-tabs">
-                    <li class="active"><a href="/attachment/page?document_id={{$documentId}}">附件</a></li>
-                    <li><a href="/attachment/image?document_id={{$documentId}}">图片</a></li>
-                </ul>
-            </div>
+{{$attachments := .attachments}}
+{{$documentId := .document_id}}
+{{$spaceId := .space_id}}
+{{$document := .document}}
+{{$space := .space}}
+{{$scope := .scope}}
+{{$docCount := .doc_count}}
+{{$spaceCount := .space_count}}
+{{$isUpload := .is_upload}}
+{{$isDelete := .is_delete}}
+
+<style>
+    /* 附件卡片与表格 */
+    .attachment-card-box {
+        background: #ffffff;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    }
+
+    .attachment-table {
+        width: 100%;
+        margin-bottom: 0;
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+
+    .attachment-table thead th {
+        background: #f8fafc;
+        color: var(--text-muted);
+        font-size: 12px;
+        font-weight: 600;
+        padding: 10px 16px;
+        border-bottom: 1px solid var(--border);
+        text-align: left;
+    }
+
+    .attachment-table tbody td {
+        padding: 12px 16px;
+        font-size: 13px;
+        color: var(--text-main);
+        border-bottom: 1px solid #f1f5f9;
+        vertical-align: middle;
+    }
+
+    .attachment-table tbody tr:last-child td {
+        border-bottom: none;
+    }
+
+    .attachment-table tbody tr {
+        transition: background-color 0.15s ease;
+    }
+
+    .attachment-table tbody tr:hover {
+        background-color: #f8fafc;
+    }
+
+    /* 文件名与智能图标 */
+    .file-cell {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .file-icon {
+        width: 34px;
+        height: 34px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+        flex-shrink: 0;
+    }
+
+    .file-icon-pdf { background: #fee2e2; color: #dc2626; }
+    .file-icon-word { background: #e0e7ff; color: #4338ca; }
+    .file-icon-excel { background: #dcfce7; color: #15803d; }
+    .file-icon-ppt { background: #ffedd5; color: #c2410c; }
+    .file-icon-zip { background: #fef3c7; color: #b45309; }
+    .file-icon-code { background: #ede9fe; color: #6d28d9; }
+    .file-icon-text { background: #f1f5f9; color: #475569; }
+    .file-icon-default { background: #f1f5f9; color: #64748b; }
+
+    .file-details {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        min-width: 0;
+    }
+
+    .file-name {
+        font-weight: 600;
+        color: var(--text-main);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 320px;
+    }
+
+    .file-origin-badge {
+        font-size: 11px;
+        color: #475569;
+        background: #f1f5f9;
+        padding: 1px 6px;
+        border-radius: 4px;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        max-width: fit-content;
+    }
+
+    /* 操作按钮 */
+    .action-group {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        justify-content: flex-end;
+    }
+
+    .btn-table-action {
+        padding: 4px 10px;
+        font-size: 12px;
+        font-weight: 500;
+        border-radius: 6px;
+        border: 1px solid var(--border);
+        background: #ffffff;
+        color: var(--text-main);
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        text-decoration: none !important;
+        transition: all 0.15s ease;
+    }
+
+    .btn-table-action:hover {
+        background: #f8fafc;
+        border-color: #cbd5e1;
+        color: var(--primary);
+    }
+
+    .btn-table-action.btn-insert {
+        background: var(--primary-light);
+        color: var(--primary);
+        border-color: #bfdbfe;
+        font-weight: 600;
+    }
+
+    .btn-table-action.btn-insert:hover {
+        background: var(--primary);
+        color: #ffffff;
+        border-color: var(--primary);
+    }
+
+    .btn-table-action.btn-danger-hover:hover {
+        color: var(--danger);
+        background: var(--danger-light);
+        border-color: #fecaca;
+    }
+</style>
+
+<!-- 顶部导航与信息栏 -->
+<div class="asset-header">
+    <div class="asset-title-area">
+        <div class="asset-title-icon">
+            <i class="fa fa-paperclip"></i>
         </div>
-        {{if eq $isUpload true}}
-        <div class="panel-body" style="padding-bottom: 10px">
-            <div class="row">
-                <div class="col-md-12" id="attach_section">
-                    <input id="attach_upload" name="attachment" type="file">
-                </div>
+        <div class="asset-title-text">
+            <h3>空间资源与附件库</h3>
+            <div class="asset-title-badges">
+                <span class="badge-space" title="所属空间：{{$space.name}}"><i class="fa fa-cubes"></i> {{$space.name}}</span>
+                <span class="badge-doc" title="当前文档：{{$document.name}}"><i class="fa fa-file-text-o"></i> {{$document.name}}</span>
             </div>
-        </div>
-        {{end}}
-        <div class="panel-body">
-            <table class="table">
-                <thead>
-                <tr>
-                    <td class="text-left"><strong>文件名</strong></td>
-                    <td class="w15p text-left"><strong>上传用户</strong></td>
-                    <td class="w20p text-left"><strong>上传时间</strong></td>
-                    <td class="w11p center"><strong>操作</strong></td>
-                </tr>
-                </thead>
-                <tbody>
-                {{range $attachment := $attachments}}
-                    <tr>
-                        <td>{{$attachment.name}}</td>
-                        <td>{{$attachment.username}}</td>
-                        <td>{{dateFormat $attachment.create_time "Y-m-d H:i:s"}}</td>
-                        <td class="center">
-                            {{if eq $isDelete true}}
-                            <a onclick="Layers.confirm('确定删除附件吗？', '/attachment/delete?attachment_id={{$attachment.attachment_id}}');"><i class="glyphicon glyphicon-trash"></i></a>
-                            {{end}}
-                            <a href="/attachment/download?attachment_id={{$attachment.attachment_id}}"><i class="glyphicon glyphicon-download"></i></a>
-                        </td>
-                    </tr>
-                {{end}}
-                </tbody>
-            </table>
         </div>
     </div>
+    <div class="asset-nav-tabs">
+        <a href="/attachment/page?document_id={{$documentId}}&scope={{$scope}}" class="asset-tab-btn active">
+            <i class="fa fa-paperclip"></i> 文件附件
+        </a>
+        <a href="/attachment/image?document_id={{$documentId}}&scope={{$scope}}" class="asset-tab-btn">
+            <i class="fa fa-picture-o"></i> 图片资源
+        </a>
+    </div>
 </div>
-<script type="text/javascript">
-    {{if eq $isUpload true}}
-    var attachmentOption = {
-        language: "zh",
-        multiple: false,
-        uploadUrl: "/attachment/upload",
-        enctype: 'multipart/form-data',
-        showPreview: false,
-        maxFileSize: 1024 * 500,
-        // allowedFileTypes: ['image'],
-        // allowedFileExtensions: ['jpg', 'gif', 'png'],
-        uploadExtraData: {
-            document_id: "{{$documentId}}",
-        },
-        msgUploadEnd: "上传完成",
-        elErrorContainer: "#failedBox"
-    };
-    var attachmentObj = $("#attach_upload").fileinput(attachmentOption);
-    attachmentObj.on('fileuploaded', function(event, data) {
-        console.log('fileuploaded');
-        if(data.response.code) {
-            Layers.successMsg(data.response.message);
-            Common.redirect(data.response.redirect.url)
-        } else {
-            // process danger
-            // var progress = $("#attach_section").find("[role='progressbar']");
-            // progress.removeClass("bg-success");
-            // progress.removeClass("progress-bar-success");
-            // progress.addClass("progress-bar-danger");
-            // progress.addClass("bg-danger");
-            // Page.uploadErrorBox("#failedBox", data.response.message);
-        }
-    });
-    attachmentObj.on('fileuploaderror', function(event, data) {
-        console.log('fileuploaderror');
-        var progress = $("#attach_section").find("[role='progressbar']");
-        progress.removeClass("bg-success");
-        progress.removeClass("progress-bar-success");
-        progress.addClass("progress-bar-danger");
-        progress.addClass("bg-danger");
-        Page.uploadErrorBox("#failedBox", data.response.error);
-        // Page.notFound();
-    });
-    attachmentObj.on('filebatchuploadcomplete',function (event, files) {
-        console.log('filebatchuploadcomplete', event, files);
-    });
+
+<!-- 工具栏：范围选择、搜索、上传按钮 -->
+<div class="asset-toolbar">
+    <div class="asset-scope-segmented">
+        <a href="/attachment/page?document_id={{$documentId}}&scope=doc" class="scope-pill {{if eq $scope "doc"}}active{{end}}">
+            <i class="fa fa-folder-open-o"></i> 当前文档附件
+            <span class="badge-count">{{$docCount}}</span>
+        </a>
+        <a href="/attachment/page?document_id={{$documentId}}&scope=space" class="scope-pill {{if eq $scope "space"}}active{{end}}">
+            <i class="fa fa-database"></i> 本空间全库共享
+            <span class="badge-count">{{$spaceCount}}</span>
+        </a>
+    </div>
+
+    <div class="asset-toolbar-right">
+        <div class="asset-search-wrapper">
+            <i class="fa fa-search"></i>
+            <input type="text" id="asset-search-input" class="asset-search-input" placeholder="按文件名/上传者/来源过滤...">
+        </div>
+        {{if eq $isUpload true}}
+        <button type="button" class="btn-upload-toggle" id="btn-toggle-upload" onclick="toggleUploadDropzone()">
+            <i class="fa fa-cloud-upload"></i> 上传附件
+        </button>
+        {{end}}
+    </div>
+</div>
+
+<!-- 拖拽上传区域 -->
+{{if eq $isUpload true}}
+<div id="asset-dropzone" class="asset-dropzone" onclick="triggerFileInput()">
+    <input type="file" id="file-uploader" multiple style="display:none" onchange="handleFilesSelected(this.files)">
+    <div class="dropzone-icon">
+        <i class="fa fa-cloud-upload"></i>
+    </div>
+    <div class="dropzone-title">点击或拖拽文件到此处上传到当前文档</div>
+    <p class="dropzone-hint">支持 PDF、Office 文档、压缩包等各类文件，上传后可立即插入文档下载链接</p>
+    <div id="upload-progress" class="upload-progress">
+        <div id="upload-progress-bar" class="upload-progress-bar"></div>
+    </div>
+</div>
+{{end}}
+
+<!-- 附件列表内容 -->
+<div id="attachment-table-container">
+    {{if len $attachments}}
+    <div class="attachment-card-box">
+        <table class="attachment-table">
+            <thead>
+                <tr>
+                    <th style="width: 45%;">文件名</th>
+                    <th style="width: 12%;">大小</th>
+                    <th style="width: 15%;">上传用户</th>
+                    <th style="width: 13%;">上传时间</th>
+                    <th style="width: 15%; text-align: right;">操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{range $attachment := $attachments}}
+                <tr class="asset-item-node"
+                    data-name="{{$attachment.name}}"
+                    data-user="{{$attachment.username}}"
+                    data-doc="{{$attachment.document_name}}">
+                    <td>
+                        <div class="file-cell">
+                            <div class="file-icon" data-filename="{{$attachment.name}}">
+                                <i class="fa fa-file-text-o"></i>
+                            </div>
+                            <div class="file-details">
+                                <div class="file-name" title="{{$attachment.name}}">{{$attachment.name}}</div>
+                                {{if eq $scope "space"}}
+                                <div class="file-origin-badge" title="来源文档：{{$attachment.document_name}}">
+                                    <i class="fa fa-file-text-o"></i> {{$attachment.document_name}}
+                                </div>
+                                {{end}}
+                            </div>
+                        </div>
+                    </td>
+                    <td><span style="font-size: 12px; color: var(--text-muted);">{{$attachment.file_size}}</span></td>
+                    <td><span style="font-weight: 500;">{{$attachment.username}}</span></td>
+                    <td><span style="font-size: 12px; color: var(--text-muted);">{{dateFormat $attachment.create_time "Y-m-d H:i"}}</span></td>
+                    <td>
+                        <div class="action-group">
+                            <button type="button" class="btn-table-action btn-insert" title="一键插入文档当前光标处" 
+                                    onclick="insertFileToDoc('{{$attachment.name}}', '/attachment/download?attachment_id={{$attachment.attachment_id}}')">
+                                <i class="fa fa-bolt"></i> 插入
+                            </button>
+                            <button type="button" class="btn-table-action" title="复制 Markdown 下载语法" 
+                                    onclick="copyMarkdown('[{{$attachment.name}}](/attachment/download?attachment_id={{$attachment.attachment_id}})')">
+                                <i class="fa fa-copy"></i>
+                            </button>
+                            <a href="/attachment/download?attachment_id={{$attachment.attachment_id}}" class="btn-table-action" title="下载原文件" target="_blank">
+                                <i class="fa fa-download"></i>
+                            </a>
+                            {{if eq $isDelete true}}
+                            <button type="button" class="btn-table-action btn-danger-hover" title="删除附件" 
+                                    onclick="deleteAttachment('{{$attachment.attachment_id}}', '{{$attachment.name}}')">
+                                <i class="fa fa-trash-o"></i>
+                            </button>
+                            {{end}}
+                        </div>
+                    </td>
+                </tr>
+                {{end}}
+            </tbody>
+        </table>
+    </div>
+    {{else}}
+    <div class="asset-empty-state">
+        <div class="empty-icon"><i class="fa fa-paperclip"></i></div>
+        <h4>暂无附件资源</h4>
+        <p>{{if eq $scope "doc"}}当前文档尚未上传任何附件，点击右上角【上传附件】开始添加{{else}}当前空间下尚无可复用的附件资源{{end}}</p>
+    </div>
     {{end}}
+
+    <div id="asset-search-empty" class="asset-empty-state" style="display:none; margin-top: 10px;">
+        <div class="empty-icon"><i class="fa fa-search"></i></div>
+        <h4>未找到匹配的附件</h4>
+        <p>没有找到符合搜索条件的文件，请尝试更换关键词</p>
+    </div>
+</div>
+
+<script>
+    // 展开/收起上传框
+    function toggleUploadDropzone() {
+        var dz = document.getElementById('asset-dropzone');
+        if (!dz) return;
+        dz.classList.toggle('show');
+    }
+
+    function triggerFileInput() {
+        document.getElementById('file-uploader').click();
+    }
+
+    // 智能文件图标生成
+    function applySmartFileIcons() {
+        var icons = document.querySelectorAll('.file-icon[data-filename]');
+        icons.forEach(function(el) {
+            var fn = (el.getAttribute('data-filename') || '').toLowerCase();
+            var ext = fn.split('.').pop();
+            var iconClass = 'fa-file-o';
+            var bgClass = 'file-icon-default';
+
+            if (['pdf'].indexOf(ext) !== -1) {
+                iconClass = 'fa-file-pdf-o';
+                bgClass = 'file-icon-pdf';
+            } else if (['doc', 'docx'].indexOf(ext) !== -1) {
+                iconClass = 'fa-file-word-o';
+                bgClass = 'file-icon-word';
+            } else if (['xls', 'xlsx', 'csv'].indexOf(ext) !== -1) {
+                iconClass = 'fa-file-excel-o';
+                bgClass = 'file-icon-excel';
+            } else if (['ppt', 'pptx'].indexOf(ext) !== -1) {
+                iconClass = 'fa-file-powerpoint-o';
+                bgClass = 'file-icon-ppt';
+            } else if (['zip', 'rar', '7z', 'tar', 'gz'].indexOf(ext) !== -1) {
+                iconClass = 'fa-file-archive-o';
+                bgClass = 'file-icon-zip';
+            } else if (['js', 'ts', 'go', 'py', 'java', 'html', 'css', 'json', 'sql', 'sh', 'xml'].indexOf(ext) !== -1) {
+                iconClass = 'fa-file-code-o';
+                bgClass = 'file-icon-code';
+            } else if (['txt', 'md', 'log'].indexOf(ext) !== -1) {
+                iconClass = 'fa-file-text-o';
+                bgClass = 'file-icon-text';
+            }
+            el.className = 'file-icon ' + bgClass;
+            el.innerHTML = '<i class="fa ' + iconClass + '"></i>';
+        });
+    }
+
+    // 拖拽文件进入 dropzone
+    var dropzone = document.getElementById('asset-dropzone');
+    if (dropzone) {
+        ['dragenter', 'dragover'].forEach(function(evt) {
+            dropzone.addEventListener(evt, function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                dropzone.classList.add('dragover');
+            });
+        });
+        ['dragleave', 'drop'].forEach(function(evt) {
+            dropzone.addEventListener(evt, function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                dropzone.classList.remove('dragover');
+            });
+        });
+        dropzone.addEventListener('drop', function(e) {
+            var dt = e.dataTransfer;
+            if (dt && dt.files && dt.files.length) {
+                handleFilesSelected(dt.files);
+            }
+        });
+    }
+
+    // 上传文件处理
+    function handleFilesSelected(files) {
+        if (!files || !files.length) return;
+        var progressEl = document.getElementById('upload-progress');
+        var barEl = document.getElementById('upload-progress-bar');
+        if (progressEl) progressEl.style.display = 'block';
+        if (barEl) barEl.style.width = '20%';
+
+        var docId = '{{$documentId}}';
+        var uploadNext = function(index) {
+            if (index >= files.length) {
+                if (barEl) barEl.style.width = '100%';
+                showAssetToast('✓ 所有附件上传完成！');
+                setTimeout(function() {
+                    window.location.reload();
+                }, 600);
+                return;
+            }
+
+            var file = files[index];
+            var formData = new FormData();
+            formData.append('document_id', docId);
+            formData.append('scope', '{{$scope}}');
+            formData.append('attachment', file);
+
+            var pct = Math.round(((index + 1) / files.length) * 90);
+            if (barEl) barEl.style.width = pct + '%';
+
+            $.ajax({
+                url: '/attachment/upload',
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                dataType: 'json',
+                success: function(res) {
+                    if (res && res.code === 1) {
+                        uploadNext(index + 1);
+                    } else {
+                        var errMsg = (res && res.message) ? res.message : '上传失败';
+                        showAssetToast('❌ ' + file.name + ': ' + errMsg);
+                        uploadNext(index + 1);
+                    }
+                },
+                error: function(err) {
+                    showAssetToast('❌ 上传网络异常');
+                    uploadNext(index + 1);
+                }
+            });
+        };
+
+        uploadNext(0);
+    }
+
+    // 插入文档
+    function insertFileToDoc(name, downloadUrl) {
+        var md = '[' + name + '](' + downloadUrl + ')';
+        insertToEditor(md);
+    }
+
+    // 删除附件
+    function deleteAttachment(id, name) {
+        layer.confirm('确定要彻底删除附件 "' + name + '" 吗？此操作不可恢复。', {
+            title: '删除确认',
+            btn: ['确认删除', '取消'],
+            icon: 3
+        }, function(index) {
+            layer.close(index);
+            $.ajax({
+                url: '/attachment/delete?attachment_id=' + id + '&scope={{$scope}}',
+                type: 'POST',
+                dataType: 'json',
+                success: function(res) {
+                    if (res && res.code === 1) {
+                        showAssetToast('✓ 已删除附件');
+                        setTimeout(function() {
+                            window.location.reload();
+                        }, 500);
+                    } else {
+                        layer.msg((res && res.message) || '删除失败', {icon: 2});
+                    }
+                },
+                error: function() {
+                    layer.msg('请求出错，请重试', {icon: 2});
+                }
+            });
+        });
+    }
+
+    $(function() {
+        applySmartFileIcons();
+    });
 </script>
