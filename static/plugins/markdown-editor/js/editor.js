@@ -48,6 +48,8 @@
     this.syncScroll = true;
     this.isScrolling = false;
     this.saveTimer = null;
+    this.saveSuccessTimer = null;
+    this.isZenMode = false;
     this.mermaidPromise = null;
 
     this.init();
@@ -60,7 +62,9 @@
     underline: { before: '<u>', after: '</u>', placeholder: '下划线文本' },
     strikethrough: { before: '~~', after: '~~', placeholder: '删除线文本' },
     code: { before: '```javascript\n', after: '\n```', placeholder: 'console.log("Hello, MM-Wiki!");' },
+    'inline-code': { before: '`', after: '`', placeholder: 'code' },
     quote: { before: '> ', after: '', placeholder: '引用内容' },
+    callout: { before: '> [!NOTE]\n> ', after: '', placeholder: '在此输入提示内容...' },
     link: { before: '[', after: '](https://example.com)', placeholder: '链接文本' },
     image: { before: '![', after: '](https://markdown.com.cn/images/qrcode_for_gh_82cf87d482f0_258.jpg)', placeholder: '图片描述' },
     hr: { before: '\n---\n', after: '', placeholder: '' },
@@ -88,6 +92,7 @@
     this.initSyncScroll();
     this.initLineNumbers();
     this.initContent();
+    this.initFindReplace();
     this.bindEvents();
     this.initResizer();
     this.updateStats();
@@ -530,23 +535,37 @@
     this.scheduleSave();
   };
 
-  // ===== 本地草稿与内容加载 =====
+  // ===== 本地草稿与内容加载 (非阻塞横幅) =====
   MMWikiEditor.prototype.initContent = function () {
+    var self = this;
     var initial = this.options.initialContent || '';
     var draft = localStorage.getItem(this.storageKey);
 
-    if (draft && draft !== initial) {
-      if (confirm('【MM-Wiki 提示】检测到本地存在上次未提交的文档草稿，是否恢复？')) {
-        this.editor.value = draft;
-      } else {
-        this.editor.value = initial;
-      }
-    } else {
-      this.editor.value = initial;
+    this.editor.value = initial;
+    if (this.hiddenInput) {
+      this.hiddenInput.value = initial;
     }
 
-    if (this.hiddenInput) {
-      this.hiddenInput.value = this.editor.value;
+    if (draft && draft.trim() !== initial.trim()) {
+      var banner = document.getElementById('draft-banner');
+      var recoverBtn = document.getElementById('draft-recover-btn');
+      var discardBtn = document.getElementById('draft-discard-btn');
+      if (banner && recoverBtn && discardBtn) {
+        banner.classList.add('show');
+        recoverBtn.onclick = function () {
+          self.editor.value = draft;
+          if (self.hiddenInput) self.hiddenInput.value = draft;
+          self.renderPreview();
+          self.updateStats();
+          self.updateLineNumbers();
+          banner.classList.remove('show');
+          if (self.saveStatus) self.setSaveStatus('saved', '已恢复本地草稿');
+        };
+        discardBtn.onclick = function () {
+          localStorage.removeItem(self.storageKey);
+          banner.classList.remove('show');
+        };
+      }
     }
   };
 
@@ -607,9 +626,13 @@
   MMWikiEditor.prototype.updateStats = function () {
     if (!this.editor) return;
     var text = this.editor.value;
-    var count = text.replace(/\s/g, '').length;
+    var cnChars = (text.match(/[\u4e00-\u9fa5]/g) || []).length;
+    var enWords = (text.match(/[a-zA-Z0-9_-]+/g) || []).length;
+    var totalWords = cnChars + enWords;
+    var readingMinutes = Math.max(1, Math.ceil(totalWords / 300));
+
     if (this.wordCountEl) {
-      this.wordCountEl.textContent = count + ' 字';
+      this.wordCountEl.textContent = totalWords.toLocaleString() + ' 字 · 约 ' + readingMinutes + ' 分钟阅读';
     }
 
     if (this.cursorPos) {
@@ -619,6 +642,29 @@
       var line = lines.length;
       var col = lines[lines.length - 1].length + 1;
       this.cursorPos.textContent = '行 ' + line + ', 列 ' + col;
+    }
+  };
+
+  // ===== 状态栏保存反馈 =====
+  MMWikiEditor.prototype.setSaveStatus = function (status, text) {
+    if (!this.saveStatus) return;
+    clearTimeout(this.saveSuccessTimer);
+    this.saveStatus.className = status;
+    if (status === 'saving') {
+      this.saveStatus.innerHTML = '<i class="fa fa-spinner fa-spin"></i> ' + (text || '正在保存...');
+    } else if (status === 'saved') {
+      this.saveStatus.innerHTML = '<i class="fa fa-check-circle" style="color:#10b981;"></i> ' + (text || '已保存');
+      var self = this;
+      this.saveSuccessTimer = setTimeout(function () {
+        if (self.saveStatus) {
+          self.saveStatus.className = '';
+          self.saveStatus.textContent = '就绪';
+        }
+      }, 4000);
+    } else if (status === 'error') {
+      this.saveStatus.innerHTML = '<i class="fa fa-times-circle" style="color:#ef4444;"></i> ' + (text || '保存失败');
+    } else {
+      this.saveStatus.textContent = text || '就绪';
     }
   };
 
@@ -970,6 +1016,380 @@
     });
   };
 
+  // ===== 智能列表续写与自动缩进 =====
+  MMWikiEditor.prototype.handleEnter = function (e) {
+    if (e.shiftKey || e.ctrlKey || e.metaKey || e.altKey) return false;
+    var ed = this.editor;
+    var val = ed.value;
+    var start = ed.selectionStart;
+    var end = ed.selectionEnd;
+    if (start !== end) return false;
+
+    var lineStart = val.lastIndexOf('\n', start - 1) + 1;
+    var lineEnd = val.indexOf('\n', start);
+    if (lineEnd === -1) lineEnd = val.length;
+    var beforeCursor = val.substring(lineStart, start);
+    var afterCursor = val.substring(start, lineEnd);
+
+    // 1. 待办清单: ^(\s*)([-*+])\s+\[([ xX])\]\s*(.*)$
+    var taskMatch = beforeCursor.match(/^(\s*)([-*+])\s+\[([ xX])\]\s*(.*)$/);
+    if (taskMatch) {
+      var indent = taskMatch[1];
+      var bullet = taskMatch[2];
+      var text = taskMatch[4];
+      if (!text && !afterCursor) {
+        ed.setRangeText('', lineStart, start, 'end');
+        this.renderPreview();
+        this.updateLineNumbers();
+        return true;
+      }
+      var nextPrefix = '\n' + indent + bullet + ' [ ] ';
+      ed.setRangeText(nextPrefix, start, end, 'end');
+      this.renderPreview();
+      this.updateLineNumbers();
+      return true;
+    }
+
+    // 2. 有序列表: ^(\s*)(\d+)\.\s*(.*)$
+    var orderedMatch = beforeCursor.match(/^(\s*)(\d+)\.\s*(.*)$/);
+    if (orderedMatch) {
+      var indent = orderedMatch[1];
+      var num = parseInt(orderedMatch[2], 10);
+      var text = orderedMatch[3];
+      if (!text && !afterCursor) {
+        ed.setRangeText('', lineStart, start, 'end');
+        this.renderPreview();
+        this.updateLineNumbers();
+        return true;
+      }
+      var nextPrefix = '\n' + indent + (num + 1) + '. ';
+      ed.setRangeText(nextPrefix, start, end, 'end');
+      this.renderPreview();
+      this.updateLineNumbers();
+      return true;
+    }
+
+    // 3. 无序列表: ^(\s*)([-*+])\s*(.*)$
+    var unorderedMatch = beforeCursor.match(/^(\s*)([-*+])\s*(.*)$/);
+    if (unorderedMatch) {
+      var indent = unorderedMatch[1];
+      var bullet = unorderedMatch[2];
+      var text = unorderedMatch[3];
+      if (!text && !afterCursor) {
+        ed.setRangeText('', lineStart, start, 'end');
+        this.renderPreview();
+        this.updateLineNumbers();
+        return true;
+      }
+      var nextPrefix = '\n' + indent + bullet + ' ';
+      ed.setRangeText(nextPrefix, start, end, 'end');
+      this.renderPreview();
+      this.updateLineNumbers();
+      return true;
+    }
+
+    // 4. 引用块延续: ^(\s*>+\s*)(.*)$
+    var quoteMatch = beforeCursor.match(/^(\s*>+\s*)(.*)$/);
+    if (quoteMatch) {
+      var prefix = quoteMatch[1];
+      var text = quoteMatch[2];
+      if (!text && !afterCursor) {
+        ed.setRangeText('', lineStart, start, 'end');
+        this.renderPreview();
+        this.updateLineNumbers();
+        return true;
+      }
+      var nextPrefix = '\n' + prefix;
+      ed.setRangeText(nextPrefix, start, end, 'end');
+      this.renderPreview();
+      this.updateLineNumbers();
+      return true;
+    }
+
+    return false;
+  };
+
+  // ===== 符号自动补全与选区包裹 =====
+  MMWikiEditor.prototype.handleAutoPairs = function (e) {
+    if (e.ctrlKey || e.metaKey || e.altKey) return false;
+    var pairs = {
+      '(': ')',
+      '[': ']',
+      '{': '}',
+      '`': '`',
+      '"': '"',
+      "'": "'",
+      '$': '$'
+    };
+    var closeChars = [')', ']', '}', '`', '"', "'", '$'];
+
+    var ed = this.editor;
+    var val = ed.value;
+    var start = ed.selectionStart;
+    var end = ed.selectionEnd;
+
+    // 选区包裹 (Wrap Selection)
+    if (start !== end) {
+      var wrapChar = e.key;
+      var closeChar = pairs[wrapChar];
+      if (wrapChar === '*') closeChar = '*';
+      if (wrapChar === '~') closeChar = '~';
+      if (wrapChar === '_') closeChar = '_';
+
+      if (closeChar) {
+        var selected = val.substring(start, end);
+        ed.setRangeText(wrapChar + selected + closeChar, start, end, 'select');
+        this.renderPreview();
+        return true;
+      }
+      return false;
+    }
+
+    // 单光标处理
+    // 1. 跳过下一个闭合符号 (Type-over)
+    if (closeChars.indexOf(e.key) !== -1 && val.charAt(start) === e.key) {
+      ed.setSelectionRange(start + 1, start + 1);
+      return true;
+    }
+
+    // 2. 自动插入闭合符号
+    var matchClose = pairs[e.key];
+    if (matchClose) {
+      ed.setRangeText(e.key + matchClose, start, start, 'end');
+      ed.setSelectionRange(start + 1, start + 1);
+      this.renderPreview();
+      return true;
+    }
+
+    // 3. 成对退格 (Backspace on empty pair)
+    if (e.key === 'Backspace' && start > 0) {
+      var prevChar = val.charAt(start - 1);
+      var nextChar = val.charAt(start);
+      if (pairs[prevChar] === nextChar) {
+        ed.setRangeText('', start - 1, start + 1, 'end');
+        this.renderPreview();
+        this.updateLineNumbers();
+        return true;
+      }
+    }
+
+    return false;
+  };
+
+  // ===== 行操作: 上下移动与复制 =====
+  MMWikiEditor.prototype.moveLines = function (direction) {
+    var ed = this.editor;
+    var val = ed.value;
+    var start = ed.selectionStart;
+    var end = ed.selectionEnd;
+
+    var lineStart = val.lastIndexOf('\n', start - 1) + 1;
+    var lineEnd = val.indexOf('\n', end);
+    if (lineEnd === -1) lineEnd = val.length;
+
+    var selectedChunk = val.substring(lineStart, lineEnd);
+
+    if (direction === -1) {
+      if (lineStart === 0) return;
+      var prevLineStart = val.lastIndexOf('\n', lineStart - 2) + 1;
+      var prevChunk = val.substring(prevLineStart, lineStart - 1);
+      var newText = selectedChunk + '\n' + prevChunk;
+      ed.setRangeText(newText, prevLineStart, lineEnd, 'end');
+      var offset = lineStart - prevLineStart;
+      ed.setSelectionRange(start - offset, end - offset);
+    } else if (direction === 1) {
+      if (lineEnd === val.length) return;
+      var nextLineEnd = val.indexOf('\n', lineEnd + 1);
+      if (nextLineEnd === -1) nextLineEnd = val.length;
+      var nextChunk = val.substring(lineEnd + 1, nextLineEnd);
+      var newText = nextChunk + '\n' + selectedChunk;
+      ed.setRangeText(newText, lineStart, nextLineEnd, 'end');
+      var offset = nextChunk.length + 1;
+      ed.setSelectionRange(start + offset, end + offset);
+    }
+    this.renderPreview();
+    this.updateLineNumbers();
+  };
+
+  MMWikiEditor.prototype.duplicateLine = function () {
+    var ed = this.editor;
+    var val = ed.value;
+    var start = ed.selectionStart;
+    var end = ed.selectionEnd;
+
+    var lineStart = val.lastIndexOf('\n', start - 1) + 1;
+    var lineEnd = val.indexOf('\n', end);
+    if (lineEnd === -1) lineEnd = val.length;
+
+    var lineText = val.substring(lineStart, lineEnd);
+    ed.setRangeText('\n' + lineText, lineEnd, lineEnd, 'end');
+    var offset = lineText.length + 1;
+    ed.setSelectionRange(start + offset, end + offset);
+    this.renderPreview();
+    this.updateLineNumbers();
+  };
+
+  // ===== 沉浸专注全屏模式 =====
+  MMWikiEditor.prototype.toggleZenMode = function () {
+    this.isZenMode = !this.isZenMode;
+    this.container.classList.toggle('zen-mode', this.isZenMode);
+    var zenBtn = document.getElementById('zen-mode-toggle');
+    if (zenBtn) zenBtn.classList.toggle('zen-active', this.isZenMode);
+    if (parent && typeof parent.toggleZenMode === 'function') {
+      parent.toggleZenMode(this.isZenMode);
+    }
+  };
+
+  // ===== 编辑器内查找与替换 =====
+  MMWikiEditor.prototype.initFindReplace = function () {
+    var self = this;
+    this.findBar = document.getElementById('find-replace-bar');
+    this.findInput = document.getElementById('find-input');
+    this.replaceInput = document.getElementById('replace-input');
+    this.findCount = document.getElementById('find-count');
+    this.findMatchesList = [];
+    this.currentMatchIndex = -1;
+
+    if (!this.findBar) return;
+
+    var prevBtn = document.getElementById('find-prev-btn');
+    var nextBtn = document.getElementById('find-next-btn');
+    var closeBtn = document.getElementById('find-close-btn');
+    var replaceOneBtn = document.getElementById('replace-one-btn');
+    var replaceAllBtn = document.getElementById('replace-all-btn');
+
+    if (closeBtn) closeBtn.onclick = function () { self.closeFindReplace(); };
+    if (nextBtn) nextBtn.onclick = function () { self.findNext(); };
+    if (prevBtn) prevBtn.onclick = function () { self.findPrev(); };
+    if (replaceOneBtn) replaceOneBtn.onclick = function () { self.replaceOne(); };
+    if (replaceAllBtn) replaceAllBtn.onclick = function () { self.replaceAll(); };
+
+    if (this.findInput) {
+      this.findInput.addEventListener('input', function () {
+        self.performFind(this.value);
+      });
+      this.findInput.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          if (e.shiftKey) {
+            self.findPrev();
+          } else {
+            self.findNext();
+          }
+        } else if (e.key === 'Escape') {
+          self.closeFindReplace();
+        }
+      });
+    }
+
+    if (this.replaceInput) {
+      this.replaceInput.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          self.replaceOne();
+        } else if (e.key === 'Escape') {
+          self.closeFindReplace();
+        }
+      });
+    }
+  };
+
+  MMWikiEditor.prototype.openFindReplace = function () {
+    if (!this.findBar) return;
+    this.findBar.classList.add('show');
+    var sel = this.editor.value.substring(this.editor.selectionStart, this.editor.selectionEnd);
+    if (sel && sel.indexOf('\n') === -1) {
+      this.findInput.value = sel;
+    }
+    this.findInput.focus();
+    this.findInput.select();
+    this.performFind(this.findInput.value);
+  };
+
+  MMWikiEditor.prototype.closeFindReplace = function () {
+    if (!this.findBar) return;
+    this.findBar.classList.remove('show');
+    this.editor.focus();
+  };
+
+  MMWikiEditor.prototype.performFind = function (query) {
+    this.findMatchesList = [];
+    this.currentMatchIndex = -1;
+    if (!query) {
+      if (this.findCount) this.findCount.textContent = '0/0';
+      return;
+    }
+    var text = this.editor.value.toLowerCase();
+    var q = query.toLowerCase();
+    var pos = 0;
+    while ((pos = text.indexOf(q, pos)) !== -1) {
+      this.findMatchesList.push({ start: pos, end: pos + query.length });
+      pos += query.length;
+    }
+    if (this.findMatchesList.length > 0) {
+      var selStart = this.editor.selectionStart;
+      var foundIdx = 0;
+      for (var i = 0; i < this.findMatchesList.length; i++) {
+        if (this.findMatchesList[i].start >= selStart) {
+          foundIdx = i;
+          break;
+        }
+      }
+      this.currentMatchIndex = foundIdx;
+      this.highlightCurrentMatch();
+    } else {
+      if (this.findCount) this.findCount.textContent = '0/0';
+    }
+  };
+
+  MMWikiEditor.prototype.highlightCurrentMatch = function () {
+    if (this.currentMatchIndex < 0 || this.currentMatchIndex >= this.findMatchesList.length) {
+      if (this.findCount) this.findCount.textContent = '0/0';
+      return;
+    }
+    var m = this.findMatchesList[this.currentMatchIndex];
+    this.editor.setSelectionRange(m.start, m.end);
+    this.editor.focus();
+    if (this.findCount) {
+      this.findCount.textContent = (this.currentMatchIndex + 1) + '/' + this.findMatchesList.length;
+    }
+  };
+
+  MMWikiEditor.prototype.findNext = function () {
+    if (this.findMatchesList.length === 0) return;
+    this.currentMatchIndex = (this.currentMatchIndex + 1) % this.findMatchesList.length;
+    this.highlightCurrentMatch();
+  };
+
+  MMWikiEditor.prototype.findPrev = function () {
+    if (this.findMatchesList.length === 0) return;
+    this.currentMatchIndex = (this.currentMatchIndex - 1 + this.findMatchesList.length) % this.findMatchesList.length;
+    this.highlightCurrentMatch();
+  };
+
+  MMWikiEditor.prototype.replaceOne = function () {
+    if (this.currentMatchIndex < 0 || this.currentMatchIndex >= this.findMatchesList.length) return;
+    var replaceText = this.replaceInput ? this.replaceInput.value : '';
+    var m = this.findMatchesList[this.currentMatchIndex];
+    this.editor.setRangeText(replaceText, m.start, m.end, 'end');
+    this.renderPreview();
+    this.updateLineNumbers();
+    this.performFind(this.findInput.value);
+  };
+
+  MMWikiEditor.prototype.replaceAll = function () {
+    if (this.findMatchesList.length === 0) return;
+    var query = this.findInput ? this.findInput.value : '';
+    var replaceText = this.replaceInput ? this.replaceInput.value : '';
+    if (!query) return;
+
+    var regex = new RegExp(query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+    this.editor.value = this.editor.value.replace(regex, replaceText);
+    this.renderPreview();
+    this.updateLineNumbers();
+    this.performFind(query);
+  };
+
   // ===== 事件监听绑定 =====
   MMWikiEditor.prototype.bindEvents = function () {
     var self = this;
@@ -987,7 +1407,15 @@
 
     // 键盘快捷键监听
     this.editor.addEventListener('keydown', function (e) {
-      // Tab 缩进 (2空格)
+      // 1. 回车列表智能续行与空项退出
+      if (e.key === 'Enter') {
+        if (self.handleEnter(e)) {
+          e.preventDefault();
+          return;
+        }
+      }
+
+      // 2. Tab 缩进 (2空格) / Shift+Tab 反缩进
       if (e.key === 'Tab') {
         e.preventDefault();
         var start = self.editor.selectionStart;
@@ -1005,10 +1433,64 @@
           self.editor.setRangeText('  ', start, end, 'end');
         }
         self.renderPreview();
+        self.updateLineNumbers();
+        return;
+      }
+
+      // 3. 括号/引号/Markdown符号自动成对与选区包裹
+      if (self.handleAutoPairs(e)) {
+        e.preventDefault();
+        return;
+      }
+
+      // 4. Alt+Up / Alt+Down 整行移动
+      if (e.altKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
+        e.preventDefault();
+        self.moveLines(e.key === 'ArrowUp' ? -1 : 1);
         return;
       }
 
       var isCtrl = e.ctrlKey || e.metaKey;
+
+      // 5. Ctrl+Shift+D 复制当前行
+      if (isCtrl && e.shiftKey && e.key.toLowerCase() === 'd') {
+        e.preventDefault();
+        self.duplicateLine();
+        return;
+      }
+
+      // 6. Ctrl+F 查找与替换
+      if (isCtrl && e.key.toLowerCase() === 'f') {
+        e.preventDefault();
+        self.openFindReplace();
+        return;
+      }
+
+      // 7. F11 或 Ctrl+Shift+F 沉浸全屏模式
+      if (e.key === 'F11' || (isCtrl && e.shiftKey && e.key.toLowerCase() === 'f')) {
+        e.preventDefault();
+        self.toggleZenMode();
+        return;
+      }
+
+      // 8. Esc 退出
+      if (e.key === 'Escape') {
+        if (self.findBar && self.findBar.classList.contains('show')) {
+          e.preventDefault();
+          self.closeFindReplace();
+          return;
+        }
+        if (self.isZenMode) {
+          e.preventDefault();
+          self.toggleZenMode();
+          return;
+        }
+        if (self.helpModal) {
+          self.hideHelp();
+        }
+      }
+
+      // 9. 格式化快捷键
       if (isCtrl && e.key.toLowerCase() === 'b') {
         e.preventDefault();
         self.insertMarkdown('bold');
@@ -1020,7 +1502,20 @@
         self.insertMarkdown('underline');
       } else if (isCtrl && e.key.toLowerCase() === 'k') {
         e.preventDefault();
-        self.insertMarkdown('link');
+        if (e.shiftKey) {
+          self.insertMarkdown('code');
+        } else {
+          self.insertMarkdown('link');
+        }
+      } else if (isCtrl && e.key.toLowerCase() === 'e') {
+        e.preventDefault();
+        self.insertMarkdown('inline-code');
+      } else if (isCtrl && e.shiftKey && e.key.toLowerCase() === 'c') {
+        e.preventDefault();
+        self.insertMarkdown('callout');
+      } else if (isCtrl && e.shiftKey && e.key.toLowerCase() === 't') {
+        e.preventDefault();
+        self.insertMarkdown('table');
       } else if (isCtrl && e.key === '/') {
         e.preventDefault();
         self.toggleComment();
@@ -1041,6 +1536,8 @@
           case 'theme': self.toggleTheme(); break;
           case 'line-numbers': self.toggleLineNumbers(); break;
           case 'preview-only': self.togglePreviewOnly(); break;
+          case 'find': self.openFindReplace(); break;
+          case 'zen-mode': self.toggleZenMode(); break;
           case 'import-md':
             var input = document.getElementById('import-file');
             if (input) input.click();
@@ -1090,7 +1587,15 @@
     }
 
     document.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape') {
+      if (e.key === 'F11' || ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'f')) {
+        e.preventDefault();
+        self.toggleZenMode();
+      } else if (e.key === 'Escape') {
+        if (self.findBar && self.findBar.classList.contains('show')) {
+          self.closeFindReplace();
+        } else if (self.isZenMode) {
+          self.toggleZenMode();
+        }
         self.hideHelp();
         if (self.imgPreview) self.imgPreview.classList.remove('active');
       }

@@ -9,7 +9,7 @@ var Page = {
      * @param element
      * @returns {boolean}
      */
-    ajaxSave: function (element, sendEmail, isAutoFollow, isConfirm) {
+    ajaxSave: function (element, sendEmail, isAutoFollow, isConfirm, callback) {
         // 默认行为：未显式指定时，视为“仅保存，不退出”
         if (typeof isConfirm === 'undefined') {
             isConfirm = false;
@@ -21,7 +21,7 @@ var Page = {
          * @param data
          */
         function successBox(message, data) {
-            Layers.successMsg(message)
+            Layers.successMsg(message);
         }
 
         /**
@@ -30,7 +30,7 @@ var Page = {
          * @param data
          */
         function failed(message, data) {
-            Layers.failedMsg(message)
+            Layers.failedMsg(message);
         }
 
         /**
@@ -40,14 +40,30 @@ var Page = {
         function response(result) {
             //console.log(result)
             if (result.code == 0) {
-                failed(result.message, result.data);
+                if (typeof callback === 'function') {
+                    callback(false, result.message);
+                } else if (window.editor && typeof window.editor.setSaveStatus === 'function') {
+                    window.editor.setSaveStatus('error', '保存失败: ' + (result.message || '未知错误'));
+                } else {
+                    failed(result.message, result.data);
+                }
             }
             if (result.code == 1) {
                 // remove storage
                 var documentId = $("input[name='document_id']").val();
                 var storageId = "mm_wiki_doc_"+documentId;
                 Storage.remove(storageId);
-                successBox(result.message, result.data);
+                if (typeof callback === 'function') {
+                    callback(true, result.message);
+                } else if (isConfirm === false) {
+                    if (window.editor && typeof window.editor.setSaveStatus === 'function') {
+                        window.editor.setSaveStatus('saved', '已保存于 ' + new Date().toLocaleTimeString());
+                    } else {
+                        successBox(result.message, result.data);
+                    }
+                } else {
+                    successBox(result.message, result.data);
+                }
             }
             if (result.redirect.url && result.data == "0") {
                 var sleepTime = result.redirect.sleep || 3000;
@@ -59,10 +75,22 @@ var Page = {
 
         // 直接保存（不弹备注、不退出编辑）
         if (isConfirm === false) {
-            var commentText = ""
+            if (window.editor && typeof window.editor.setSaveStatus === 'function') {
+                window.editor.setSaveStatus('saving', '正在保存...');
+            }
+            var commentText = "";
             var options = {
                 dataType: 'json',
                 success: response,
+                error: function(xhr, status, error) {
+                    if (typeof callback === 'function') {
+                        callback(false, '网络异常: ' + error);
+                    } else if (window.editor && typeof window.editor.setSaveStatus === 'function') {
+                        window.editor.setSaveStatus('error', '保存失败: 网络异常');
+                    } else {
+                        failed('网络请求异常');
+                    }
+                },
                 data: {'comment': commentText, 'is_notice_user': "0", 'is_follow_doc': "1", 'save_type':"1"}
             };
             $(element).ajaxSubmit(options);

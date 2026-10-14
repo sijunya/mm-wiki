@@ -179,6 +179,13 @@
                     </div>
 
                     <div class="toolbar-right">
+                        <button class="tool-btn" data-action="find" id="find-toggle-btn" title="查找与替换 (Ctrl+F)">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                        </button>
+                        <button class="tool-btn" data-action="zen-mode" id="zen-mode-toggle" title="沉浸全屏写作 (F11 / Ctrl+Shift+F)">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>
+                        </button>
+                        <div class="toolbar-divider"></div>
                         <button class="tool-btn" data-action="import-md" title="导入 Markdown 文件">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
                         </button>
@@ -207,6 +214,34 @@
                         </button>
                     </div>
                 </header>
+
+                <!-- 本地草稿恢复提示条 -->
+                <div class="editor-draft-banner" id="draft-banner">
+                    <div class="draft-banner-content">
+                        <i class="fa fa-info-circle"></i>
+                        <span id="draft-banner-text">检测到本地存在上次未提交的文档草稿。</span>
+                    </div>
+                    <div class="draft-banner-actions">
+                        <button type="button" class="draft-btn-recover" id="draft-recover-btn"><i class="fa fa-history"></i> 恢复草稿</button>
+                        <button type="button" class="draft-btn-discard" id="draft-discard-btn">忽略并丢弃</button>
+                    </div>
+                </div>
+
+                <!-- 编辑器内浮动查找与替换面板 -->
+                <div class="editor-find-replace-bar" id="find-replace-bar">
+                    <div class="find-row">
+                        <input type="text" class="find-input" id="find-input" placeholder="查找内容 (回车查找下一个)...">
+                        <span class="find-count" id="find-count">0/0</span>
+                        <button type="button" class="find-btn" id="find-prev-btn" title="上一个 (Shift+Enter)"><i class="fa fa-chevron-up"></i></button>
+                        <button type="button" class="find-btn" id="find-next-btn" title="下一个 (Enter)"><i class="fa fa-chevron-down"></i></button>
+                        <button type="button" class="find-close-btn" id="find-close-btn" title="关闭 (Esc)">&times;</button>
+                    </div>
+                    <div class="replace-row">
+                        <input type="text" class="replace-input" id="replace-input" placeholder="替换为...">
+                        <button type="button" class="find-btn" id="replace-one-btn" title="替换当前匹配">替换</button>
+                        <button type="button" class="find-btn" id="replace-all-btn" title="替换全部匹配">全部替换</button>
+                    </div>
+                </div>
 
                 <!-- 双分栏编辑与预览主体 -->
                 <main class="editor-container">
@@ -253,22 +288,33 @@
 
 <!-- 快捷键帮助弹窗 -->
 <div class="modal-overlay" id="help-modal">
-  <div class="modal">
+  <div class="modal" style="max-width: 520px; max-height: 85vh; display: flex; flex-direction: column;">
     <div class="modal-header">
-      <h3><i class="fa fa-keyboard-o"></i> 快捷键帮助</h3>
+      <h3><i class="fa fa-keyboard-o"></i> 快捷键帮助大全</h3>
       <button class="modal-close" data-close="help-modal">&times;</button>
     </div>
-    <div class="modal-body">
+    <div class="modal-body" style="overflow-y: auto; max-height: calc(85vh - 70px);">
       <table class="shortcut-table">
+        <tr><th colspan="2" style="font-weight: 700; color: #2563eb; padding-top: 4px;">常用格式</th></tr>
         <tr><td><kbd>Ctrl</kbd>+<kbd>B</kbd></td><td>粗体</td></tr>
         <tr><td><kbd>Ctrl</kbd>+<kbd>I</kbd></td><td>斜体</td></tr>
         <tr><td><kbd>Ctrl</kbd>+<kbd>U</kbd></td><td>下划线</td></tr>
         <tr><td><kbd>Ctrl</kbd>+<kbd>K</kbd></td><td>插入超链接</td></tr>
-        <tr><td><kbd>Ctrl</kbd>+<kbd>S</kbd></td><td>直接保存文档</td></tr>
+        <tr><td><kbd>Ctrl</kbd>+<kbd>E</kbd></td><td>插入行内代码</td></tr>
+        <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>K</kbd></td><td>插入代码块</td></tr>
+        <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd></td><td>插入 Callout 提示块</td></tr>
+        <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>T</kbd></td><td>快速插入 3x3 表格</td></tr>
         <tr><td><kbd>Ctrl</kbd>+<kbd>/</kbd></td><td>行注释 / 取消注释</td></tr>
-        <tr><td><kbd>Tab</kbd></td><td>缩进 (2个空格)</td></tr>
-        <tr><td><kbd>Shift</kbd>+<kbd>Tab</kbd></td><td>取消缩进</td></tr>
-        <tr><td><kbd>Esc</kbd></td><td>关闭弹窗 / 图片大图</td></tr>
+
+        <tr><th colspan="2" style="font-weight: 700; color: #2563eb; padding-top: 10px;">码字与效率</th></tr>
+        <tr><td><kbd>Enter</kbd></td><td>列表智能续行 / 空项自动退出</td></tr>
+        <tr><td><kbd>Tab</kbd> / <kbd>Shift</kbd>+<kbd>Tab</kbd></td><td>行 / 列表缩进与反缩进</td></tr>
+        <tr><td><kbd>Alt</kbd>+<kbd>↑</kbd> / <kbd>↓</kbd></td><td>将当前行向上 / 向下整行移动</td></tr>
+        <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd></td><td>快速复制当前行</td></tr>
+        <tr><td><kbd>Ctrl</kbd>+<kbd>F</kbd></td><td>呼出编辑器内查找与替换面板</td></tr>
+        <tr><td><kbd>F11</kbd> / <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd></td><td>沉浸专注全屏写作模式</td></tr>
+        <tr><td><kbd>Ctrl</kbd>+<kbd>S</kbd></td><td>直接保存（原位无弹窗反馈）</td></tr>
+        <tr><td><kbd>Esc</kbd></td><td>退出全屏 / 关闭浮层与弹窗</td></tr>
       </table>
     </div>
   </div>
@@ -310,6 +356,9 @@
             initialContent: {{$pageContent}},
             uploadUrl: '/image/upload',
             onSave: function () {
+                if (editor) {
+                    document.getElementById('markdown_content_input').value = editor.getValue();
+                }
                 var form = document.getElementById("page_form");
                 Page.ajaxSave(form, {{.sendEmail}}, {{.autoFollowDoc}}, false);
             }

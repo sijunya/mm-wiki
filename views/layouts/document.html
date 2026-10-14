@@ -42,6 +42,41 @@
     <script type="text/javascript" src="/static/js/common/common.js"></script>
     <script type="text/javascript" src="/static/js/common/layers.js"></script>
     <script type="text/javascript" src="/static/js/modules/common.js"></script>
+    <style>
+        /* 沉浸专注全屏模式 (Zen Mode) */
+        body.zen-mode-active .navbar-fixed-top,
+        body.zen-mode-active #sidebar-wrapper {
+            display: none !important;
+        }
+        body.zen-mode-active #main-left,
+        body.zen-mode-active .ui-layout-resizer-west {
+            display: none !important;
+        }
+        body.zen-mode-active #mainFrame {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            z-index: 999999 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            border: none !important;
+        }
+    </style>
+    <script>
+        window.toggleZenMode = function(active) {
+            if (typeof active === 'undefined') {
+                active = !$('body').hasClass('zen-mode-active');
+            }
+            if (active) {
+                $('body').addClass('zen-mode-active');
+            } else {
+                $('body').removeClass('zen-mode-active');
+            }
+            return active;
+        };
+    </script>
 </head>
 <body>
 {{template "layouts/header.html" .}}
