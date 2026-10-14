@@ -1,67 +1,79 @@
-<div class="container-fluid">
-<div class="panel panel-default">
-    <div class="panel-body">
-        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; padding-bottom: 14px; border-bottom: 1px solid #f1f5f9;">
+<div class="container-fluid" style="padding-top: 4px;">
+<div class="panel panel-default" style="box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
+    <div class="panel-body" style="padding: 20px 24px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 22px; padding-bottom: 16px; border-bottom: 1px solid #f1f5f9; flex-wrap: wrap; gap: 12px;">
             <div style="display: flex; align-items: center; gap: 10px;">
+                <div style="width: 32px; height: 32px; border-radius: 8px; background: #eff6ff; display: flex; align-items: center; justify-content: center; color: #2563eb;">
+                    <i class="fa fa-users" style="font-size: 16px;"></i>
+                </div>
                 <h3 style="margin: 0; font-size: 18px; font-weight: 700; color: #0f172a;">全部用户</h3>
-                <span class="badge">{{.count}}</span>
+                <span class="badge" style="font-size: 12px;">{{.count}}</span>
             </div>
             {{$username := .username}}
             <form action="" method="get" style="margin: 0;">
-                <div class="input-group" style="width: 240px;">
-                    <input class="form-control" name="username" type="text" value="{{$username}}" placeholder="搜索用户名...">
-                    <span class="input-group-btn">
-                        <button type="submit" class="btn btn-primary"><i class="glyphicon glyphicon-search"></i></button>
-                    </span>
+                <div style="position: relative; width: 260px;">
+                    <i class="glyphicon glyphicon-search" style="position: absolute; left: 12px; top: 11px; color: #94a3b8; font-size: 13px; pointer-events: none;"></i>
+                    <input class="form-control" name="username" type="text" value="{{$username}}" placeholder="搜索用户名或姓名..." style="padding-left: 34px; padding-right: 40px; height: 36px; border-radius: 8px;">
+                    <button type="submit" style="position: absolute; right: 4px; top: 3px; height: 30px; width: 30px; border: none; background: transparent; color: #64748b; border-radius: 6px; cursor: pointer;" title="搜索">
+                        <i class="fa fa-arrow-right"></i>
+                    </button>
                 </div>
             </form>
         </div>{{$loginUserId := .login_user_id}}
 
-        <table class="table">
+        <table class="table" style="margin-bottom: 0;">
             <thead>
             <tr>
-                <td class="w15p text-left"><strong>用户名</strong></td>
-                <td class="text-left"><strong>姓名</strong></td>
-                <td class="text-left"><strong>职位</strong></td>
-                <td class="w18p text-left"><strong>邮箱</strong></td>
-                <td class="w12p text-left"><strong>座机</strong></td>
-                <td class="w12p text-left"><strong>手机</strong></td>
+                <td class="w25p text-left"><strong>用户与身份</strong></td>
+                <td class="w15p text-left"><strong>职务职位</strong></td>
+                <td class="w25p text-left"><strong>电子邮箱</strong></td>
+                <td class="w15p text-left"><strong>联系电话</strong></td>
                 <td class="w10p text-left"><strong>IM</strong></td>
-                <td class="w8p center"><strong>操作</strong></td>
+                <td class="w10p center"><strong>关注操作</strong></td>
             </tr>
             </thead>
             <tbody>
             {{range $user := .users}}
             <tr class="space-list">
-                <td>
-                    {{if eq $user.user_id $loginUserId}}
-                        <a href="/system/main/index" target="_parent" style="font-weight: 600; display: inline-flex; align-items: center; gap: 6px;">
-                            <i class="fa fa-user-circle text-primary"></i>
-                            <span>{{$user.username}}</span>
-                            <span class="text-muted" style="font-size: 11px;"><i class="glyphicon glyphicon-new-window"></i></span>
-                        </a>
-                    {{else}}
-                        <a href="/user/info?user_id={{$user.user_id}}" style="font-weight: 600; display: inline-flex; align-items: center; gap: 6px;">
-                            <i class="fa fa-user-circle text-primary"></i>
-                            <span>{{$user.username}}</span>
-                            <span class="text-muted" style="font-size: 11px;"><i class="glyphicon glyphicon-new-window"></i></span>
-                        </a>
-                    {{end}}
+                <td style="padding: 12px 14px !important;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <div style="width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg, #2563eb, #3b82f6); color: #ffffff; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; text-transform: uppercase; flex-shrink: 0;">
+                            {{substr $user.username 0 1}}
+                        </div>
+                        <div>
+                            <div>
+                                {{if eq $user.user_id $loginUserId}}
+                                    <a href="/system/main/index" target="_parent" style="font-weight: 600; font-size: 14px; color: #0f172a; text-decoration: none;" onmouseover="this.style.color='#2563eb'" onmouseout="this.style.color='#0f172a'">
+                                        {{$user.username}}
+                                        <i class="glyphicon glyphicon-new-window text-muted" style="font-size: 10px; margin-left: 2px;"></i>
+                                    </a>
+                                {{else}}
+                                    <a href="/user/info?user_id={{$user.user_id}}" style="font-weight: 600; font-size: 14px; color: #0f172a; text-decoration: none;" onmouseover="this.style.color='#2563eb'" onmouseout="this.style.color='#0f172a'">
+                                        {{$user.username}}
+                                        <i class="glyphicon glyphicon-new-window text-muted" style="font-size: 10px; margin-left: 2px;"></i>
+                                    </a>
+                                {{end}}
+                            </div>
+                            <span class="label label-default" style="font-size: 11px; padding: 1px 6px; font-weight: normal;">{{$user.given_name}}</span>
+                        </div>
+                    </div>
                 </td>
-                <td>{{$user.given_name}}</td>
-                <td>{{$user.position}}</td>
-                <td style="color: #64748b;">{{$user.email}}</td>
-                <td style="color: #64748b;">{{$user.phone}}</td>
-                <td style="color: #64748b;">{{$user.mobile}}</td>
-                <td style="color: #64748b;">{{$user.im}}</td>
-                <td class="center">
+                <td style="vertical-align: middle !important; color: #334155;">{{if $user.position}}{{$user.position}}{{else}}<span class="text-muted">-</span>{{end}}</td>
+                <td style="vertical-align: middle !important; color: #64748b;">
+                    {{if $user.email}}<i class="fa fa-envelope-o text-muted" style="margin-right: 4px;"></i>{{$user.email}}{{else}}-{{end}}
+                </td>
+                <td style="vertical-align: middle !important; color: #64748b;">
+                    {{if $user.mobile}}<i class="fa fa-phone text-muted" style="margin-right: 4px;"></i>{{$user.mobile}}{{else if $user.phone}}<i class="fa fa-phone text-muted" style="margin-right: 4px;"></i>{{$user.phone}}{{else}}-{{end}}
+                </td>
+                <td style="vertical-align: middle !important; color: #64748b;">{{if $user.im}}{{$user.im}}{{else}}-{{end}}</td>
+                <td class="center" style="vertical-align: middle !important;">
                     {{if eq $user.user_id $loginUserId}}
-                    <span class="text-muted">-</span>
+                    <span class="text-muted" style="font-size: 12px;">本人</span>
                     {{else}}
                     {{if eq $user.follow "1"}}
-                        <a onclick="Common.ajaxSubmit('/follow/cancel?follow_id={{$user.follow_id}}&user_id={{$user.user_id}}')" class="btn btn-default btn-xs" title="取消关注"><i class="glyphicon glyphicon-heart text-danger"></i></a>
+                        <a onclick="Common.ajaxSubmit('/follow/cancel?follow_id={{$user.follow_id}}&user_id={{$user.user_id}}')" class="btn btn-default btn-xs" title="已关注，点击取消" style="color: #ef4444;"><i class="fa fa-heart"></i> 关注中</a>
                     {{else}}
-                        <a onclick="Common.ajaxSubmit('/follow/add?type=2&object_id={{$user.user_id}}')" class="btn btn-default btn-xs" title="关注用户"><i class="glyphicon glyphicon-heart-empty"></i></a>
+                        <a onclick="Common.ajaxSubmit('/follow/add?type=2&object_id={{$user.user_id}}')" class="btn btn-default btn-xs" title="添加关注"><i class="fa fa-heart-o"></i> 关注</a>
                     {{end}}
                     {{end}}
                 </td>
@@ -70,7 +82,7 @@
             </tbody>
         </table>
     </div>
-    <div class="panel-footer center">
+    <div class="panel-footer center" style="padding: 16px;">
         {{template "paginator/default.html" .}}
     </div>
 </div>

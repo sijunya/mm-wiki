@@ -1,93 +1,130 @@
-<div class="container-fluid">{{$user := .user}}
-    <div class="panel panel-default">
-        <div class="panel-body">
-            <div class="page-header">
-                <h3><i class="fa fa-address-card-o"></i> {{$user.username}}（{{$user.given_name}}）</h3>
+<div class="container-fluid" style="padding-top: 4px;">{{$user := .user}}
+    <div class="panel panel-default" style="box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
+        <div class="panel-body" style="padding: 24px 28px;">
+            <!-- 用户个人 Hero 头部 -->
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; padding-bottom: 20px; border-bottom: 1px solid #f1f5f9; flex-wrap: wrap; gap: 16px;">
+                <div style="display: flex; align-items: center; gap: 16px;">
+                    <div style="width: 56px; height: 56px; border-radius: 50%; background: linear-gradient(135deg, #2563eb, #3b82f6); color: #ffffff; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 700; text-transform: uppercase; box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);">
+                        {{substr $user.username 0 1}}
+                    </div>
+                    <div>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <h3 style="margin: 0; font-size: 20px; font-weight: 700; color: #0f172a;">{{$user.username}}</h3>
+                            <span class="label label-primary">{{$user.given_name}}</span>
+                            {{if $user.position}}<span class="label label-default">{{$user.position}}</span>{{end}}
+                        </div>
+                        <p style="margin: 4px 0 0 0; font-size: 13px; color: #64748b;">
+                            {{if $user.email}}<span><i class="fa fa-envelope-o" style="margin-right: 4px;"></i>{{$user.email}}</span>{{end}}
+                            {{if $user.department}}<span style="margin-left: 12px;"><i class="fa fa-sitemap" style="margin-right: 4px;"></i>{{$user.department}}</span>{{end}}
+                        </p>
+                    </div>
+                </div>
+                <div>
+                    <a name="edit" data-link="/system/profile/edit" class="btn btn-default" style="gap: 6px;">
+                        <i class="fa fa-edit text-primary"></i> 修改个人资料
+                    </a>
+                </div>
             </div>
-            <ul class="nav nav-tabs">
-                <li  class="active"><a href="/system/profile/info">用户信息</a></li>
-                <li><a href="/system/profile/followUser">关注用户</a></li>
-                <li><a href="/system/profile/followDoc">关注文档</a></li>
+
+            <!-- 现代化 Tabs 导航 -->
+            <ul class="nav nav-tabs" style="margin-bottom: 24px;">
+                <li class="active"><a href="/system/profile/info"><i class="fa fa-user" style="margin-right: 6px;"></i>用户信息</a></li>
+                <li><a href="/system/profile/followUser"><i class="fa fa-heart-o" style="margin-right: 6px;"></i>关注用户</a></li>
+                <li><a href="/system/profile/followDoc"><i class="fa fa-bookmark-o" style="margin-right: 6px;"></i>关注文档</a></li>
             </ul>
-            <br>
+
             <div class="row">
-                <div class="col-md-7" style="padding-left: 30px">
-                    <h3>最近活动</h3>
+                <!-- 左侧 最近活动 -->
+                <div class="col-md-7">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px;">
+                        <h4 style="margin: 0; font-size: 15.5px; font-weight: 700; color: #0f172a;"><i class="fa fa-clock-o text-primary" style="margin-right: 6px;"></i>最近活动记录</h4>
+                        <span class="badge" style="font-size: 11px;">{{.count}} 项记录</span>
+                    </div>
+
                     <div class="user-activity">
                         {{if eq .count 0}}
-                            <div class="alert alert-info alert-dismissible fade in" role="alert" style="margin-bottom: 0">
-                                <p><i class="glyphicon glyphicon-volume-up"></i> 还没有任何活动！</p>
+                            <div class="alert alert-info" role="alert" style="border-radius: 8px; margin-bottom: 0;">
+                                <p style="margin: 0;"><i class="fa fa-info-circle"></i> 还没有任何活动动态！</p>
                             </div>
                         {{else}}
-                        <ul>
+                        <ul style="padding: 0; margin: 0; list-style: none;">
                         {{range $logDocument := .logDocuments}}
-                            <li>
-                                <div>
-                                    {{if eq $logDocument.action "3"}}
-                                        {{if eq $logDocument.document_type "1"}}
-                                            <i class="fa fa-file-word-o"></i>
-                                        {{else}}
-                                            <i class="fa fa-folder-o"></i>
-                                        {{end}}
-                                        {{$logDocument.document_name}}
+                            <li style="display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 8px; background: #ffffff; border: 1px solid #f1f5f9; margin-bottom: 8px; transition: all 0.15s ease;" onmouseover="this.style.backgroundColor='#f8fafc'" onmouseout="this.style.backgroundColor='#ffffff'">
+                                <div style="width: 32px; height: 32px; border-radius: 6px; {{if eq $logDocument.document_type "1"}}background: #eff6ff; color: #2563eb;{{else}}background: #fffbeb; color: #d97706;{{end}} display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                                    {{if eq $logDocument.document_type "1"}}
+                                        <i class="fa fa-file-text-o"></i>
                                     {{else}}
-                                        <a href="/document/index?document_id={{$logDocument.document_id}}" target="_parent" class="text text-info text-font-15">
-                                        {{if eq $logDocument.document_type "1"}}
-                                            <i class="fa fa-file-word-o"></i>
-                                        {{else}}
-                                            <i class="fa fa-folder-o"></i>
-                                        {{end}}
-                                        {{$logDocument.document_name}}</a>
+                                        <i class="fa fa-folder-o"></i>
                                     {{end}}
                                 </div>
-                                <span class="text text-font-12 activity-time">{{if eq $logDocument.action "1"}}创建
-                                {{else if eq $logDocument.action "2"}}修改{{else if eq $logDocument.action "3"}}删除
-                                {{end}}于 {{dateFormat $logDocument.update_time "Y-m-d H:i:s"}}</span>
+                                <div style="flex: 1; min-width: 0;">
+                                    <div>
+                                        {{if eq $logDocument.action "3"}}
+                                            <span style="font-weight: 600; font-size: 14px; color: #64748b; text-decoration: line-through;">{{$logDocument.document_name}}</span>
+                                        {{else}}
+                                            <a href="/document/index?document_id={{$logDocument.document_id}}" target="_parent" style="font-weight: 600; font-size: 14px; color: #0f172a; text-decoration: none;" onmouseover="this.style.color='#2563eb'" onmouseout="this.style.color='#0f172a'">
+                                                {{$logDocument.document_name}}
+                                            </a>
+                                        {{end}}
+                                    </div>
+                                    <div class="activity-time" style="font-size: 12px; color: #64748b; margin-top: 2px;">
+                                        <span class="label {{if eq $logDocument.action "1"}}label-success{{else if eq $logDocument.action "2"}}label-primary{{else}}label-danger{{end}}" style="font-size: 10.5px; padding: 1px 6px;">
+                                            {{if eq $logDocument.action "1"}}创建{{else if eq $logDocument.action "2"}}修改{{else if eq $logDocument.action "3"}}删除{{end}}
+                                        </span>
+                                        <span style="margin-left: 6px;">{{dateFormat $logDocument.update_time "Y-m-d H:i:s"}}</span>
+                                    </div>
+                                </div>
                             </li>
                         {{end}}
                         </ul>
                         {{end}}
                     </div>
                 </div>
+
+                <!-- 右侧 个人资料卡 -->
                 <div class="col-md-5">
-                    <h3>个人资料 <a class="fa fa-edit" name="edit" data-link="/system/profile/edit"></a></h3>
-                    <div class="user-info">
-                        <div class="user-group">
-                            <label class="text-right text-font-15">用户名</label>
-                            <span>{{$user.username}}</span>
-                        </div>
-                        <div class="user-group">
-                            <label class="text-right text-font-15">姓名</label>
-                            <span>{{$user.given_name}}</span>
-                        </div>
-                        <div class="user-group">
-                            <label class="text-right text-font-15">邮箱</label>
-                            <span>{{$user.email}}</span>
-                        </div>
-                        <div class="user-group">
-                            <label class="text-right text-font-15">手机</label>
-                            <span>{{$user.mobile}}</span>
-                        </div>
-                        <hr>
-                        <div class="user-group">
-                            <label class="text-right text-font-15">电话</label>
-                            <span>{{$user.phone}}</span>
-                        </div>
-                        <div class="user-group">
-                            <label class="text-right text-font-15">部门</label>
-                            <span>{{$user.department}}</span>
-                        </div>
-                        <div class="user-group">
-                            <label class="text-right text-font-15">职位</label>
-                            <span>{{$user.position}}</span>
-                        </div>
-                        <div class="user-group">
-                            <label class="text-right text-font-15">位置</label>
-                            <span>{{$user.location}}</span>
-                        </div>
-                        <div class="user-group">
-                            <label class="text-right text-font-15">IM</label>
-                            <span>{{$user.im}}</span>
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px;">
+                        <h4 style="margin: 0; font-size: 15.5px; font-weight: 700; color: #0f172a;"><i class="fa fa-id-card-o text-primary" style="margin-right: 6px;"></i>详细资料信息</h4>
+                    </div>
+                    <div class="user-info" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 18px 20px;">
+                        <div style="display: flex; flex-direction: column; gap: 12px;">
+                            <div class="user-group">
+                                <label style="width: 80px; color: #64748b; font-size: 13px;"><i class="fa fa-user" style="width: 16px;"></i> 用户名</label>
+                                <span style="font-weight: 600; color: #0f172a;">{{$user.username}}</span>
+                            </div>
+                            <div class="user-group">
+                                <label style="width: 80px; color: #64748b; font-size: 13px;"><i class="fa fa-id-badge" style="width: 16px;"></i> 真实姓名</label>
+                                <span style="font-weight: 500; color: #0f172a;">{{$user.given_name}}</span>
+                            </div>
+                            <div class="user-group">
+                                <label style="width: 80px; color: #64748b; font-size: 13px;"><i class="fa fa-envelope-o" style="width: 16px;"></i> 电子邮箱</label>
+                                <span style="color: #0f172a;">{{$user.email}}</span>
+                            </div>
+                            <div class="user-group">
+                                <label style="width: 80px; color: #64748b; font-size: 13px;"><i class="fa fa-mobile" style="width: 16px; font-size: 15px;"></i> 移动手机</label>
+                                <span style="color: #0f172a;">{{$user.mobile}}</span>
+                            </div>
+                            <div style="height: 1px; background: #f1f5f9; margin: 4px 0;"></div>
+                            <div class="user-group">
+                                <label style="width: 80px; color: #64748b; font-size: 13px;"><i class="fa fa-phone" style="width: 16px;"></i> 办公电话</label>
+                                <span style="color: #0f172a;">{{$user.phone}}</span>
+                            </div>
+                            <div class="user-group">
+                                <label style="width: 80px; color: #64748b; font-size: 13px;"><i class="fa fa-building-o" style="width: 16px;"></i> 所属部门</label>
+                                <span style="color: #0f172a;">{{$user.department}}</span>
+                            </div>
+                            <div class="user-group">
+                                <label style="width: 80px; color: #64748b; font-size: 13px;"><i class="fa fa-briefcase" style="width: 16px;"></i> 担任职位</label>
+                                <span style="color: #0f172a;">{{$user.position}}</span>
+                            </div>
+                            <div class="user-group">
+                                <label style="width: 80px; color: #64748b; font-size: 13px;"><i class="fa fa-map-marker" style="width: 16px;"></i> 所在位置</label>
+                                <span style="color: #0f172a;">{{$user.location}}</span>
+                            </div>
+                            <div class="user-group">
+                                <label style="width: 80px; color: #64748b; font-size: 13px;"><i class="fa fa-commenting-o" style="width: 16px;"></i> IM 账号</label>
+                                <span style="color: #0f172a;">{{$user.im}}</span>
+                            </div>
                         </div>
                     </div>
                 </div>
