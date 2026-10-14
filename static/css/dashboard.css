@@ -724,3 +724,104 @@ body {
     background-color: #eff6ff;
     color: #2563eb;
 }
+
+/* ========================================================
+   zTree 目录树现代化拖拽重排与指示线视觉增强
+   ======================================================== */
+.ztree li a.tmpTargetNode_inner {
+    padding-top: 0px !important;
+    background-color: #eff6ff !important;
+    color: #1d4ed8 !important;
+    border: 1.5px dashed #3b82f6 !important;
+    border-radius: 4px !important;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15) !important;
+}
+
+.ztree li a.tmpTargetNode_prev {
+    border-top: 2.5px solid #2563eb !important;
+    border-radius: 2px !important;
+}
+
+.ztree li a.tmpTargetNode_next {
+    border-bottom: 2.5px solid #2563eb !important;
+    border-radius: 2px !important;
+}
+
+ul.zTreeDragUL {
+    margin: 0 !important;
+    padding: 6px 12px !important;
+    position: absolute !important;
+    width: auto !important;
+    height: auto !important;
+    overflow: hidden !important;
+    background-color: rgba(255, 255, 255, 0.96) !important;
+    border: 1px solid #bfdbfe !important;
+    border-radius: 6px !important;
+    box-shadow: 0 10px 20px -3px rgba(0, 0, 0, 0.12), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+    opacity: 0.95 !important;
+    z-index: 99999 !important;
+}
+
+ul.zTreeDragUL li {
+    list-style: none !important;
+    display: flex !important;
+    align-items: center !important;
+    font-size: 13px !important;
+    color: #1e293b !important;
+}
+
+/* ========================================================
+   文档树右键快捷操作菜单 (Context Menu)
+   ======================================================== */
+#tree-context-menu {
+    position: fixed;
+    z-index: 99999;
+    display: none;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.12), 0 8px 10px -6px rgba(0, 0, 0, 0.06);
+    border-radius: 8px;
+    padding: 6px;
+    min-width: 165px;
+    font-size: 13px;
+    color: #334155;
+    animation: fadeInCtx 0.1s ease-out;
+}
+
+@keyframes fadeInCtx {
+    from { opacity: 0; transform: scale(0.97); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+#tree-context-menu .ctx-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 12px;
+    border-radius: 5px;
+    cursor: pointer;
+    text-decoration: none;
+    color: #334155;
+    transition: all 0.12s ease;
+}
+
+#tree-context-menu .ctx-item:hover {
+    background-color: #f1f5f9;
+    color: #2563eb;
+}
+
+#tree-context-menu .ctx-item.text-danger {
+    color: #ef4444;
+}
+
+#tree-context-menu .ctx-item.text-danger:hover {
+    background-color: #fef2f2;
+    color: #dc2626;
+}
+
+#tree-context-menu .ctx-divider {
+    height: 1px;
+    background: #f1f5f9;
+    margin: 4px 6px;
+}
+

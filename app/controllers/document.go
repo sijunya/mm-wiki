@@ -2,11 +2,12 @@ package controllers
 
 import (
 	"fmt"
-	"github.com/chaiyd/mm-wiki/app/services"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/chaiyd/mm-wiki/app/models"
+	"github.com/chaiyd/mm-wiki/app/services"
 	"github.com/chaiyd/mm-wiki/app/utils"
 )
 
@@ -380,7 +381,7 @@ func (this *DocumentController) Move() {
 
 	documentId := this.GetString("document_id", "0")
 	targetId := this.GetString("target_id", "0")
-	moveType := this.GetString("move_type", "") // 同层文件排序
+	moveType := this.GetString("move_type", "inner") // "prev", "next", or "inner"
 
 	if documentId == "0" {
 		this.jsonError("没有选择文档节点！")
@@ -388,125 +389,158 @@ func (this *DocumentController) Move() {
 	if targetId == "0" {
 		this.jsonError("没有选择目标文档节点！")
 	}
+	if documentId == targetId {
+		this.jsonError("源文档与目标文档相同，无需移动！")
+	}
 
 	document, err := models.DocumentModel.GetDocumentByDocumentId(documentId)
-	if err != nil {
-		this.ErrorLog("查找移动文档失败：" + err.Error())
-		this.jsonError("移动文档失败！")
-	}
-	if len(document) == 0 {
-		this.jsonError("文档不存在！")
-	}
-	if moveType != "next" && moveType != "prev" {
-		if document["type"] == fmt.Sprintf("%d", models.Document_Type_Dir) {
-			this.jsonError("不能移动文档目录！")
-		}
+	if err != nil || len(document) == 0 {
+		this.jsonError("移动文档不存在！")
 	}
 
 	targetDocument, err := models.DocumentModel.GetDocumentByDocumentId(targetId)
-	if err != nil {
-		this.ErrorLog("查找目标文档失败：" + err.Error())
-		this.jsonError("移动文档失败！")
-	}
-	if len(targetDocument) == 0 {
+	if err != nil || len(targetDocument) == 0 {
 		this.jsonError("目标文档不存在！")
 	}
+
 	if document["space_id"] != targetDocument["space_id"] {
 		this.jsonError("文档和目标文档不在同一空间！")
-	}
-	if moveType != "next" && moveType != "prev" {
-		if targetDocument["type"] != fmt.Sprintf("%d", models.Document_Type_Dir) {
-			this.jsonError("目标文档必须是目录！")
-		}
 	}
 
 	spaceId := document["space_id"]
 	space, err := models.SpaceModel.GetSpaceBySpaceId(spaceId)
-	if err != nil {
-		this.ErrorLog("移动文档失败：" + err.Error())
-		this.jsonError("移动文档失败！")
+	if err != nil || len(space) == 0 {
+		this.jsonError("文档所在空间不存在！")
 	}
-	if len(space) == 0 {
-		this.jsonError("文档空间不存在！")
-	}
+
 	// check space document privilege
 	_, isEditor, _ := this.GetDocumentPrivilege(space)
 	if !isEditor {
-		this.jsonError("您没有权限移动该空间下的文档！")
+		this.jsonError("您没有权限移动或排序列该空间下的文档！")
 	}
 
-	// 排序逻辑：next-移动到目标文档之后 prev-移动到目标文档之前
-	if moveType == "next" || moveType == "prev" {
-		this.updateDocSequence(moveType, document, targetDocument)
-		return
+	// Calculate target parent
+	var newParentId string
+	var targetParentDocument map[string]string
+
+	if moveType == "inner" {
+		if targetDocument["type"] != fmt.Sprintf("%d", models.Document_Type_Dir) {
+			this.jsonError("不能将文档拖入非目录类型的文档中！")
+		}
+		newParentId = targetId
+		targetParentDocument = targetDocument
+	} else if moveType == "prev" || moveType == "next" {
+		newParentId = targetDocument["parent_id"]
+		if newParentId == "0" {
+			this.jsonError("无法将文档提升到空间根节点同级！")
+		}
+		targetParentDocument, err = models.DocumentModel.GetDocumentByDocumentId(newParentId)
+		if err != nil || len(targetParentDocument) == 0 {
+			this.jsonError("获取目标上级文档失败！")
+		}
+	} else {
+		this.jsonError("未知的移动类型！")
 	}
 
-	_, oldPageFile, err := models.DocumentModel.GetParentDocumentsByDocument(document)
-	if err != nil {
-		this.ErrorLog("移动文档 " + documentId + " 失败：" + err.Error())
-		this.jsonError("移动文档失败！")
-	}
-	newDocument := map[string]string{
-		"space_id":  document["space_id"],
-		"parent_id": targetId,
-		"name":      document["name"],
-		"type":      document["type"],
-		"path":      targetDocument["path"] + "," + targetId,
-	}
-	_, newPageFile, err := models.DocumentModel.GetParentDocumentsByDocument(newDocument)
-	if err != nil {
-		this.ErrorLog("移动文档 " + documentId + " 失败：" + err.Error())
-		this.jsonError("移动文档失败！")
+	// Prevent directory self-nesting / cycles
+	if document["type"] == fmt.Sprintf("%d", models.Document_Type_Dir) {
+		if newParentId == documentId {
+			this.jsonError("不能将目录移动到自身！")
+		}
+		targetParentPath := targetParentDocument["path"] + "," + targetParentDocument["document_id"]
+		if strings.Contains(targetParentPath+",", ","+documentId+",") || targetParentDocument["document_id"] == documentId {
+			this.jsonError("不能将目录移动到自己的子目录下！")
+		}
 	}
 
-	// update database and move document file
-	updateValue := map[string]interface{}{
-		"parent_id":    targetId,
-		"path":         targetDocument["path"] + "," + targetId,
+	isParentChanged := (document["parent_id"] != newParentId)
+
+	// If cross-level move (parent changed): move file on disk and update parent_id + path
+	if isParentChanged {
+		_, oldPageFile, err := models.DocumentModel.GetParentDocumentsByDocument(document)
+		if err != nil {
+			this.ErrorLog("查找移动文档父文档失败：" + err.Error())
+			this.jsonError("获取源文档路径失败！")
+		}
+
+		newDocMap := map[string]string{
+			"space_id":  spaceId,
+			"parent_id": newParentId,
+			"name":      document["name"],
+			"type":      document["type"],
+			"path":      targetParentDocument["path"] + "," + newParentId,
+		}
+		_, newPageFile, err := models.DocumentModel.GetParentDocumentsByDocument(newDocMap)
+		if err != nil {
+			this.ErrorLog("计算新文档路径失败：" + err.Error())
+			this.jsonError("计算目标文档路径失败！")
+		}
+
+		absNewPageFile := utils.Document.GetAbsPageFileByPageFile(newPageFile)
+		if exists, _ := utils.File.PathIsExists(absNewPageFile); exists {
+			this.jsonError("目标目录下已存在同名文档，无法移动！")
+		}
+
+		// Move on disk
+		err = utils.Document.Move(oldPageFile, newPageFile, utils.Convert.StringToInt(document["type"]))
+		if err != nil {
+			this.ErrorLog("移动物理文件失败：" + err.Error())
+			this.jsonError("移动文档物理文件失败！")
+		}
+
+		// Update database parent_id and path
+		newPath := targetParentDocument["path"] + "," + newParentId
+		updateValue := map[string]interface{}{
+			"parent_id":    newParentId,
+			"path":         newPath,
+			"edit_user_id": this.UserId,
+			"update_time":  time.Now().Unix(),
+		}
+		_, err = models.DocumentModel.Update(documentId, updateValue, fmt.Sprintf("移动文档到 %s", targetParentDocument["name"]), spaceId)
+		if err != nil {
+			this.ErrorLog("更新移动文档数据库记录失败：" + err.Error())
+			this.jsonError("更新文档层级记录失败！")
+		}
+
+		// If moved item is a directory, update all descendants paths
+		if document["type"] == fmt.Sprintf("%d", models.Document_Type_Dir) {
+			oldPrefix := document["path"] + "," + documentId
+			newPrefix := newPath + "," + documentId
+			_ = models.DocumentModel.UpdateDescendantsPath(spaceId, oldPrefix, newPrefix)
+		}
+	}
+
+	// Now handle sequence ordering
+	var finalSequence int
+	if moveType == "inner" {
+		maxSeq, _ := models.DocumentModel.GetDocumentMaxSequence(newParentId, spaceId)
+		finalSequence = maxSeq + 1
+	} else if moveType == "prev" {
+		targetSeq := utils.Convert.StringToInt(targetDocument["sequence"])
+		_ = models.DocumentModel.ShiftSequence(spaceId, newParentId, targetSeq, "gte", documentId)
+		finalSequence = targetSeq
+	} else if moveType == "next" {
+		targetSeq := utils.Convert.StringToInt(targetDocument["sequence"])
+		_ = models.DocumentModel.ShiftSequence(spaceId, newParentId, targetSeq, "gt", documentId)
+		finalSequence = targetSeq + 1
+	}
+
+	// Update sequence for the moved document
+	seqUpdateValue := map[string]interface{}{
+		"sequence":     finalSequence,
 		"edit_user_id": this.UserId,
 	}
-	_, err = models.DocumentModel.MoveDBAndFile(documentId, spaceId, updateValue,
-		oldPageFile, newPageFile, document["type"], "移动文档到 "+targetDocument["name"])
+	_, err = models.DocumentModel.Update(documentId, seqUpdateValue, "更新文档排序", spaceId)
 	if err != nil {
-		this.ErrorLog("移动文档 " + documentId + " 失败：" + err.Error())
-		this.jsonError("移动文档失败！")
+		this.ErrorLog("更新文档排序失败：" + err.Error())
 	}
 
-	this.InfoLog("移动文档 " + documentId + " 成功")
-	this.jsonSuccess("移动文档成功", nil, "/document/index?document_id="+documentId)
-}
-
-// 移动文档排序
-func (this *DocumentController) updateDocSequence(moveType string, document map[string]string, targetDocument map[string]string) {
-
-	sequence := utils.Convert.StringToInt(targetDocument["sequence"])
-	spaceId := targetDocument["space_id"]
-	targetDocumentId := targetDocument["document_id"]
-	movedDocumentId := document["document_id"]
-
-	updateSequence := sequence
-	if moveType == "next" {
-		updateSequence = sequence + 1
-	}
-
-	// 批量修改序号
-	_, err := models.DocumentModel.MoveSequenceBySpaceIdAndGtSequence(spaceId, updateSequence, 1)
-	if err != nil {
-		this.ErrorLog("移动文档 " + movedDocumentId + "到目标文档 " + targetDocumentId + " " + moveType + " 失败：" + err.Error())
-		this.jsonError("移动文档失败！")
-	}
-
-	// 修改当前文档的序号
-	updateValue := map[string]interface{}{
-		"sequence":     updateSequence,
-		"edit_user_id": this.UserId,
-	}
-	_, err = models.DocumentModel.Update(movedDocumentId, updateValue, fmt.Sprintf("移动文档"), spaceId)
-	if err != nil {
-		this.ErrorLog("移动文档 " + movedDocumentId + "到目标文档 " + targetDocumentId + " " + moveType + " 失败：" + err.Error())
-		this.jsonError("移动文档失败！")
-	}
-	this.jsonSuccess("移动文档成功", "", "/document/index?document_id="+movedDocumentId)
+	this.InfoLog(fmt.Sprintf("文档 %s 成功移动到 parent_id=%s sequence=%d", documentId, newParentId, finalSequence))
+	this.jsonSuccess("文档层级与排序更新成功", map[string]interface{}{
+		"document_id": documentId,
+		"parent_id":   newParentId,
+		"sequence":    finalSequence,
+	}, fmt.Sprintf("/document/index?document_id=%s", documentId))
 }
 
 // delete document

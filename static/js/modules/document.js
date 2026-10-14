@@ -38,11 +38,16 @@ var Document = {
                 removeHoverDom: removeHoverDom
             },
             edit: {
-                enable: true,
-                showRemoveBtn: true,
-                showRenameBtn: false
-                // removeTitle: '删除',
-                // renameTitle: '修改'
+                enable: isEditor,
+                showRemoveBtn: isDelete,
+                showRenameBtn: false,
+                drag: {
+                    isCopy: false,
+                    isMove: isEditor,
+                    prev: canPrev,
+                    next: canNext,
+                    inner: canInner
+                }
             },
             data: {
                 simpleData: {
@@ -64,14 +69,8 @@ var Document = {
                 beforeDrag: beforeDrag,
                 onDrag: onDrag,
                 beforeDrop: beforeDrop,
-                onDrop: onDrop
-            },
-            drag: {
-                isCopy: false,
-                isMove: true,
-                prev: true,
-                inner: true,
-                next: true
+                onDrop: onDrop,
+                onRightClick: onRightClick
             }
         };
 
@@ -101,9 +100,6 @@ var Document = {
 
         function onRename(e, treeId, treeNode, isCancel) {
             console.log("修改之后刷新...");
-            // setTimeout(function() {
-            // 	location.href = listUrl;
-            // }, 2000);
             return true;
         }
 
@@ -125,7 +121,6 @@ var Document = {
                 title: "<i class='fa fa-warning'></i><strong> 警告</strong>"
             }, function () {
                 Common.ajaxSubmit("/document/delete?document_id=" + treeNode.id);
-                // location.href = "/document/index?document_id="+moveNode.id;
             }, function () {
 
             });
@@ -142,64 +137,219 @@ var Document = {
             return true;
         }
 
+        function isDescendant(parent, target) {
+            if (!parent || !target) return false;
+            if (parent.tId === target.tId) return true;
+            var p = target.getParentNode ? target.getParentNode() : null;
+            while (p) {
+                if (p.tId === parent.tId) return true;
+                p = p.getParentNode ? p.getParentNode() : null;
+            }
+            return false;
+        }
+
+        function canPrev(treeId, nodes, targetNode) {
+            if (!targetNode || !isEditor || !nodes || nodes.length === 0) return false;
+            var moveNode = nodes[0];
+            if (moveNode.isParent && isDescendant(moveNode, targetNode)) return false;
+            return true;
+        }
+
+        function canNext(treeId, nodes, targetNode) {
+            if (!targetNode || !isEditor || !nodes || nodes.length === 0) return false;
+            var moveNode = nodes[0];
+            if (moveNode.isParent && isDescendant(moveNode, targetNode)) return false;
+            return true;
+        }
+
+        function canInner(treeId, nodes, targetNode) {
+            if (!targetNode || !isEditor || !nodes || nodes.length === 0) return false;
+            if (!targetNode.isParent) return false;
+            var moveNode = nodes[0];
+            if (moveNode.isParent && isDescendant(moveNode, targetNode)) return false;
+            return true;
+        }
+
         function beforeDrag(treeId, treeNodes) {
-            console.log("拖拽节点前...");
-            if (isEditor == false) {
+            if (!isEditor) {
                 return false;
             }
-            // if (treeNodes[0].isParent) {
-            //     return false;
-            // }
             return true;
         }
 
         function onDrag() {
-            console.log("拖拽节点中...");
             return true;
         }
 
-        function beforeDrop(treeId, treeNodes, targetNode, moveType) {
-            console.log("拖拽数据:", treeId, treeNodes, targetNode, moveType);
-            console.log("拖拽节点完成...");
-            if (isEditor == false) {
+        function beforeDrop(treeId, treeNodes, targetNode, moveType, isCopy) {
+            if (!isEditor || !targetNode || !moveType || !treeNodes || treeNodes.length === 0) {
                 return false;
             }
             var moveNode = treeNodes[0];
-            // 文档当前层级排序
-            if (moveType === "prev" || moveType === "next") {
-                let moveUrl = "/document/move?move_type=" + moveType
-                    + "&document_id=" + moveNode.id
-                    + "&target_id=" + targetNode.id;
-                Common.ajaxSubmit(moveUrl, moveUrl);
+            if (moveNode.tId === targetNode.tId) {
                 return false;
             }
-
-            // 移动文档到目录中
-            if (moveNode.isParent) {
+            // 不能移动到自身或者子目录下
+            if (moveNode.isParent && isDescendant(moveNode, targetNode)) {
+                layer.msg("不能将目录移动到自己或其子目录下！", { icon: 2, time: 2000 });
                 return false;
             }
-            if (!targetNode.isParent) {
+            // 普通文档无法作为父级目录
+            if (moveType === "inner" && !targetNode.isParent) {
+                layer.msg("普通文档不可作为父级目录！", { icon: 2, time: 2000 });
                 return false;
             }
-            
-            var title = '<i class="fa fa-volume-up"></i> 确定要移动文档吗？';
-            layer.confirm(title, {
-                btn: ['是', '否'],
-                skin: Layers.skin,
-                btnAlign: 'c',
-                title: "<i class='fa fa-warning'></i><strong> 警告</strong>"
-            }, function () {
-                Common.ajaxSubmit("/document/move?document_id=" + moveNode.id + "&target_id=" + targetNode.id);
-            }, function () {
-
-            });
-
-            return false;
+            return true;
         }
 
-        function onDrop(treeId, treeNodes, targetNode, moveType) {
-            console.log("拖拽节点完成中...");
-            return false;
+        function onDrop(event, treeId, treeNodes, targetNode, moveType, isCopy) {
+            if (!targetNode || !moveType || !treeNodes || treeNodes.length === 0) {
+                return false;
+            }
+            var moveNode = treeNodes[0];
+            var postData = {
+                document_id: moveNode.id,
+                target_id: targetNode.id,
+                move_type: moveType
+            };
+
+            var loadIdx = layer.load(2, { time: 5000 });
+            $.ajax({
+                type: "POST",
+                url: "/document/move",
+                data: postData,
+                dataType: "json",
+                success: function (res) {
+                    layer.close(loadIdx);
+                    if (res.code === 1) {
+                        layer.msg(res.message || "文档层级与排序更新成功", { icon: 1, time: 1500 });
+                        if (moveType === "inner") {
+                            moveNode.pId = targetNode.id;
+                        } else {
+                            moveNode.pId = targetNode.pId;
+                        }
+                    } else {
+                        layer.msg(res.message || "移动失败，正在重置目录...", { icon: 2, time: 2500 });
+                        setTimeout(function () {
+                            location.reload();
+                        }, 1200);
+                    }
+                },
+                error: function () {
+                    layer.close(loadIdx);
+                    layer.msg("网络请求异常，正在重置目录...", { icon: 2, time: 2500 });
+                    setTimeout(function () {
+                        location.reload();
+                    }, 1200);
+                }
+            });
+            return true;
+        }
+
+        function onRightClick(event, treeId, treeNode) {
+            if (!treeNode) {
+                hideContextMenu();
+                return;
+            }
+            event.preventDefault();
+            var zTreeMenu = $.fn.zTree.getZTreeObj("dir_tree");
+            zTreeMenu.selectNode(treeNode);
+            showContextMenu(event, treeNode);
+        }
+
+        function ensureContextMenu() {
+            if ($("#tree-context-menu").length > 0) return;
+            var html = '<div id="tree-context-menu">' +
+                '<a class="ctx-item" id="ctx-view"><i class="fa fa-book text-muted"></i> 查看文档</a>' +
+                (isEditor ? '<a class="ctx-item" id="ctx-edit"><i class="fa fa-pencil text-primary"></i> 编辑文档</a>' : '') +
+                (isEditor ? '<a class="ctx-item" id="ctx-add"><i class="fa fa-plus text-success"></i> 新建子文档</a>' : '') +
+                '<div class="ctx-divider"></div>' +
+                '<a class="ctx-item" id="ctx-copy-link"><i class="fa fa-link text-info"></i> 复制文档链接</a>' +
+                (isDelete ? '<div class="ctx-divider"></div><a class="ctx-item text-danger" id="ctx-delete"><i class="fa fa-trash-o text-danger"></i> 删除文档</a>' : '') +
+                '</div>';
+            $("body").append(html);
+
+            $(document).on("click scroll", function (e) {
+                if (!$(e.target).closest("#tree-context-menu").length) {
+                    hideContextMenu();
+                }
+            });
+        }
+
+        function showContextMenu(event, treeNode) {
+            ensureContextMenu();
+            var menu = $("#tree-context-menu");
+
+            $("#ctx-view").off("click").on("click", function () {
+                hideContextMenu();
+                location.href = "/document/index?document_id=" + treeNode.id;
+            });
+
+            if (isEditor) {
+                $("#ctx-edit").off("click").on("click", function () {
+                    hideContextMenu();
+                    window.open("/page/edit?document_id=" + treeNode.id, "_blank");
+                });
+
+                if (treeNode.isParent) {
+                    $("#ctx-add").show().off("click").on("click", function () {
+                        hideContextMenu();
+                        var content = "/document/add?space_id=" + treeNode.spaceId + "&parent_id=" + treeNode.id;
+                        layer.open({
+                            type: 2,
+                            skin: Layers.skin,
+                            title: '<strong>创建文档</strong>',
+                            shadeClose: true,
+                            shade: 0.6,
+                            maxmin: true,
+                            area: ["800px", "345px"],
+                            content: content,
+                            padding: "10px"
+                        });
+                    });
+                } else {
+                    $("#ctx-add").hide();
+                }
+            }
+
+            $("#ctx-copy-link").off("click").on("click", function () {
+                hideContextMenu();
+                var link = window.location.protocol + "//" + window.location.host + "/document/index?document_id=" + treeNode.id;
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(link).then(function () {
+                        layer.msg("已复制文档链接到剪贴板", { icon: 1, time: 1500 });
+                    });
+                } else {
+                    var $temp = $("<input>");
+                    $("body").append($temp);
+                    $temp.val(link).select();
+                    document.execCommand("copy");
+                    $temp.remove();
+                    layer.msg("已复制文档链接到剪贴板", { icon: 1, time: 1500 });
+                }
+            });
+
+            if (isDelete) {
+                $("#ctx-delete").off("click").on("click", function () {
+                    hideContextMenu();
+                    beforeRemove("dir_tree", treeNode);
+                });
+            }
+
+            var x = event.clientX;
+            var y = event.clientY;
+            var winW = $(window).width();
+            var winH = $(window).height();
+            var menuW = 170;
+            var menuH = 180;
+            if (x + menuW > winW) x = winW - menuW - 10;
+            if (y + menuH > winH) y = winH - menuH - 10;
+
+            menu.css({ top: y + "px", left: x + "px" }).fadeIn(100);
+        }
+
+        function hideContextMenu() {
+            $("#tree-context-menu").fadeOut(80);
         }
 
         function addHoverDom(treeId, treeNode) {

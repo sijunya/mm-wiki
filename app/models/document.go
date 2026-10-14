@@ -339,6 +339,34 @@ func (d *Document) MoveSequenceBySpaceIdAndGtSequence(spaceId string, startSeque
 	return
 }
 
+// ShiftSequence shifts sibling sequences under parentId
+func (d *Document) ShiftSequence(spaceId string, parentId string, fromSeq int, isGtOrGte string, excludeDocId string) error {
+	db := G.DB()
+	op := ">="
+	if isGtOrGte == "gt" {
+		op = ">"
+	}
+	updateTime := time.Now().Unix()
+	sql := fmt.Sprintf(
+		"update mw_%s set sequence=sequence+1, update_time=%d where space_id=%s and parent_id=%s and sequence %s %d and document_id != %s and is_delete=%d",
+		Table_Document_Name, updateTime, spaceId, parentId, op, fromSeq, excludeDocId, Document_Delete_False,
+	)
+	_, err := db.ExecSQL(sql)
+	return err
+}
+
+// UpdateDescendantsPath updates path for all descendants when a directory is moved
+func (d *Document) UpdateDescendantsPath(spaceId string, oldPrefix string, newPrefix string) error {
+	db := G.DB()
+	updateTime := time.Now().Unix()
+	sql := fmt.Sprintf(
+		"update mw_%s set path = REPLACE(path, '%s', '%s'), update_time=%d where space_id=%s and (path = '%s' or path like '%s,%%') and is_delete=%d",
+		Table_Document_Name, oldPrefix, newPrefix, updateTime, spaceId, oldPrefix, oldPrefix, Document_Delete_False,
+	)
+	_, err := db.ExecSQL(sql)
+	return err
+}
+
 // move document
 func (d *Document) MoveDBAndFile(documentId string, spaceId string, updateValue map[string]interface{},
 	oldPageFile string, newPageFile string, docType string, comment string) (id int64, err error) {
