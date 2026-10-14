@@ -52,6 +52,14 @@
     this.isZenMode = false;
     this.mermaidPromise = null;
 
+    // 撤销 / 重做历史栈
+    this.history = [];
+    this.historyIndex = -1;
+    this.maxHistory = 150;
+    this.isHistoryAction = false;
+    this.historyDebounceTimer = null;
+    this.lastHistoryPushTime = 0;
+
     this.init();
   }
 
@@ -92,6 +100,7 @@
     this.initSyncScroll();
     this.initLineNumbers();
     this.initContent();
+    this.initHistory();
     this.initFindReplace();
     this.bindEvents();
     this.initResizer();
@@ -553,8 +562,10 @@
       if (banner && recoverBtn && discardBtn) {
         banner.classList.add('show');
         recoverBtn.onclick = function () {
+          self.recordPreEditState();
           self.editor.value = draft;
           if (self.hiddenInput) self.hiddenInput.value = draft;
+          self.pushHistory(true);
           self.renderPreview();
           self.updateStats();
           self.updateLineNumbers();
@@ -566,6 +577,160 @@
           banner.classList.remove('show');
         };
       }
+    }
+  };
+
+  // ===== 历史撤销与重做引擎 (Undo / Redo History Stack) =====
+  MMWikiEditor.prototype.initHistory = function () {
+    this.history = [{
+      value: this.editor ? this.editor.value : '',
+      selectionStart: this.editor ? this.editor.selectionStart : 0,
+      selectionEnd: this.editor ? this.editor.selectionEnd : 0
+    }];
+    this.historyIndex = 0;
+    this.updateUndoRedoUI();
+  };
+
+  MMWikiEditor.prototype.recordPreEditState = function () {
+    if (this.isHistoryAction || !this.editor) return;
+    var currentVal = this.editor.value;
+    var curSnap = this.history[this.historyIndex];
+    if (!curSnap || curSnap.value !== currentVal) {
+      if (this.historyIndex < this.history.length - 1) {
+        this.history = this.history.slice(0, this.historyIndex + 1);
+      }
+      this.history.push({
+        value: currentVal,
+        selectionStart: this.editor.selectionStart,
+        selectionEnd: this.editor.selectionEnd
+      });
+      if (this.history.length > this.maxHistory) {
+        this.history.shift();
+      } else {
+        this.historyIndex = this.history.length - 1;
+      }
+      this.lastHistoryPushTime = Date.now();
+      this.updateUndoRedoUI();
+    }
+  };
+
+  MMWikiEditor.prototype.pushHistory = function (force) {
+    if (this.isHistoryAction || !this.editor) return;
+    var self = this;
+    var currentVal = this.editor.value;
+    var currentSnap = this.history[this.historyIndex];
+
+    if (currentSnap && currentSnap.value === currentVal) {
+      currentSnap.selectionStart = this.editor.selectionStart;
+      currentSnap.selectionEnd = this.editor.selectionEnd;
+      return;
+    }
+
+    var doPush = function () {
+      if (self.historyIndex < self.history.length - 1) {
+        self.history = self.history.slice(0, self.historyIndex + 1);
+      }
+      self.history.push({
+        value: self.editor.value,
+        selectionStart: self.editor.selectionStart,
+        selectionEnd: self.editor.selectionEnd
+      });
+      if (self.history.length > self.maxHistory) {
+        self.history.shift();
+      } else {
+        self.historyIndex = self.history.length - 1;
+      }
+      self.lastHistoryPushTime = Date.now();
+      self.updateUndoRedoUI();
+    };
+
+    if (force) {
+      if (this.historyDebounceTimer) {
+        clearTimeout(this.historyDebounceTimer);
+        this.historyDebounceTimer = null;
+      }
+      doPush();
+    } else {
+      var now = Date.now();
+      if (now - this.lastHistoryPushTime > 1200) {
+        doPush();
+      } else {
+        if (this.historyDebounceTimer) clearTimeout(this.historyDebounceTimer);
+        this.historyDebounceTimer = setTimeout(function () {
+          doPush();
+        }, 500);
+      }
+    }
+  };
+
+  MMWikiEditor.prototype.undo = function () {
+    if (!this.editor) return;
+    if (this.historyDebounceTimer) {
+      clearTimeout(this.historyDebounceTimer);
+      this.historyDebounceTimer = null;
+    }
+
+    var currentVal = this.editor.value;
+    var curSnap = this.history[this.historyIndex];
+    if (curSnap && curSnap.value !== currentVal) {
+      if (this.historyIndex < this.history.length - 1) {
+        this.history = this.history.slice(0, this.historyIndex + 1);
+      }
+      this.history.push({
+        value: currentVal,
+        selectionStart: this.editor.selectionStart,
+        selectionEnd: this.editor.selectionEnd
+      });
+      this.historyIndex = this.history.length - 1;
+    }
+
+    if (this.historyIndex <= 0) return;
+
+    this.historyIndex--;
+    var snap = this.history[this.historyIndex];
+    this.isHistoryAction = true;
+    this.editor.value = snap.value;
+    this.editor.setSelectionRange(snap.selectionStart, snap.selectionEnd);
+    this.editor.focus();
+    this.renderPreview();
+    this.updateLineNumbers();
+    this.updateStats();
+    this.updateUndoRedoUI();
+    this.isHistoryAction = false;
+  };
+
+  MMWikiEditor.prototype.redo = function () {
+    if (!this.editor) return;
+    if (this.historyIndex >= this.history.length - 1) return;
+
+    this.historyIndex++;
+    var snap = this.history[this.historyIndex];
+    this.isHistoryAction = true;
+    this.editor.value = snap.value;
+    this.editor.setSelectionRange(snap.selectionStart, snap.selectionEnd);
+    this.editor.focus();
+    this.renderPreview();
+    this.updateLineNumbers();
+    this.updateStats();
+    this.updateUndoRedoUI();
+    this.isHistoryAction = false;
+  };
+
+  MMWikiEditor.prototype.updateUndoRedoUI = function () {
+    var undoBtn = document.querySelector('.tool-btn[data-action="undo"]');
+    var redoBtn = document.querySelector('.tool-btn[data-action="redo"]');
+    var canUndo = this.historyIndex > 0;
+    var canRedo = this.historyIndex < this.history.length - 1;
+
+    if (undoBtn) {
+      undoBtn.disabled = !canUndo;
+      undoBtn.style.opacity = canUndo ? '1' : '0.4';
+      undoBtn.style.pointerEvents = canUndo ? 'auto' : 'none';
+    }
+    if (redoBtn) {
+      redoBtn.disabled = !canRedo;
+      redoBtn.style.opacity = canRedo ? '1' : '0.4';
+      redoBtn.style.pointerEvents = canRedo ? 'auto' : 'none';
     }
   };
 
@@ -797,6 +962,8 @@
     var cfg = this.actions[action];
     if (!cfg) return;
 
+    this.recordPreEditState();
+
     var start = this.editor.selectionStart;
     var end = this.editor.selectionEnd;
     var selected = this.editor.value.substring(start, end);
@@ -811,6 +978,7 @@
       this.editor.setSelectionRange(newPos, newPos + cfg.placeholder.length);
     }
 
+    this.pushHistory(true);
     this.renderPreview();
     this.updateLineNumbers();
   };
@@ -862,7 +1030,9 @@
     var self = this;
     var reader = new FileReader();
     reader.onload = function (e) {
+      self.recordPreEditState();
       self.editor.value = e.target.result;
+      self.pushHistory(true);
       self.renderPreview();
       self.updateLineNumbers();
     };
@@ -871,6 +1041,7 @@
 
   // ===== 注释切换与全屏预览 =====
   MMWikiEditor.prototype.toggleComment = function () {
+    this.recordPreEditState();
     var start = this.editor.selectionStart;
     var end = this.editor.selectionEnd;
     var selected = this.editor.value.substring(start, end);
@@ -885,6 +1056,7 @@
       this.editor.setRangeText('<!--  -->', start, end, 'end');
       this.editor.setSelectionRange(start + 5, start + 5);
     }
+    this.pushHistory(true);
     this.renderPreview();
   };
 
@@ -898,7 +1070,9 @@
 
   MMWikiEditor.prototype.clearEditor = function () {
     if (confirm('确定要清空编辑器全部内容吗？')) {
+      this.recordPreEditState();
       this.editor.value = '';
+      this.pushHistory(true);
       this.renderPreview();
       this.updateLineNumbers();
     }
@@ -1034,17 +1208,20 @@
     // 1. 待办清单: ^(\s*)([-*+])\s+\[([ xX])\]\s*(.*)$
     var taskMatch = beforeCursor.match(/^(\s*)([-*+])\s+\[([ xX])\]\s*(.*)$/);
     if (taskMatch) {
+      this.recordPreEditState();
       var indent = taskMatch[1];
       var bullet = taskMatch[2];
       var text = taskMatch[4];
       if (!text && !afterCursor) {
         ed.setRangeText('', lineStart, start, 'end');
+        this.pushHistory(true);
         this.renderPreview();
         this.updateLineNumbers();
         return true;
       }
       var nextPrefix = '\n' + indent + bullet + ' [ ] ';
       ed.setRangeText(nextPrefix, start, end, 'end');
+      this.pushHistory(true);
       this.renderPreview();
       this.updateLineNumbers();
       return true;
@@ -1053,17 +1230,20 @@
     // 2. 有序列表: ^(\s*)(\d+)\.\s*(.*)$
     var orderedMatch = beforeCursor.match(/^(\s*)(\d+)\.\s*(.*)$/);
     if (orderedMatch) {
+      this.recordPreEditState();
       var indent = orderedMatch[1];
       var num = parseInt(orderedMatch[2], 10);
       var text = orderedMatch[3];
       if (!text && !afterCursor) {
         ed.setRangeText('', lineStart, start, 'end');
+        this.pushHistory(true);
         this.renderPreview();
         this.updateLineNumbers();
         return true;
       }
       var nextPrefix = '\n' + indent + (num + 1) + '. ';
       ed.setRangeText(nextPrefix, start, end, 'end');
+      this.pushHistory(true);
       this.renderPreview();
       this.updateLineNumbers();
       return true;
@@ -1072,17 +1252,20 @@
     // 3. 无序列表: ^(\s*)([-*+])\s*(.*)$
     var unorderedMatch = beforeCursor.match(/^(\s*)([-*+])\s*(.*)$/);
     if (unorderedMatch) {
+      this.recordPreEditState();
       var indent = unorderedMatch[1];
       var bullet = unorderedMatch[2];
       var text = unorderedMatch[3];
       if (!text && !afterCursor) {
         ed.setRangeText('', lineStart, start, 'end');
+        this.pushHistory(true);
         this.renderPreview();
         this.updateLineNumbers();
         return true;
       }
       var nextPrefix = '\n' + indent + bullet + ' ';
       ed.setRangeText(nextPrefix, start, end, 'end');
+      this.pushHistory(true);
       this.renderPreview();
       this.updateLineNumbers();
       return true;
@@ -1091,16 +1274,19 @@
     // 4. 引用块延续: ^(\s*>+\s*)(.*)$
     var quoteMatch = beforeCursor.match(/^(\s*>+\s*)(.*)$/);
     if (quoteMatch) {
+      this.recordPreEditState();
       var prefix = quoteMatch[1];
       var text = quoteMatch[2];
       if (!text && !afterCursor) {
         ed.setRangeText('', lineStart, start, 'end');
+        this.pushHistory(true);
         this.renderPreview();
         this.updateLineNumbers();
         return true;
       }
       var nextPrefix = '\n' + prefix;
       ed.setRangeText(nextPrefix, start, end, 'end');
+      this.pushHistory(true);
       this.renderPreview();
       this.updateLineNumbers();
       return true;
@@ -1137,8 +1323,10 @@
       if (wrapChar === '_') closeChar = '_';
 
       if (closeChar) {
+        this.recordPreEditState();
         var selected = val.substring(start, end);
         ed.setRangeText(wrapChar + selected + closeChar, start, end, 'select');
+        this.pushHistory(true);
         this.renderPreview();
         return true;
       }
@@ -1155,8 +1343,10 @@
     // 2. 自动插入闭合符号
     var matchClose = pairs[e.key];
     if (matchClose) {
+      this.recordPreEditState();
       ed.setRangeText(e.key + matchClose, start, start, 'end');
       ed.setSelectionRange(start + 1, start + 1);
+      this.pushHistory(true);
       this.renderPreview();
       return true;
     }
@@ -1166,7 +1356,9 @@
       var prevChar = val.charAt(start - 1);
       var nextChar = val.charAt(start);
       if (pairs[prevChar] === nextChar) {
+        this.recordPreEditState();
         ed.setRangeText('', start - 1, start + 1, 'end');
+        this.pushHistory(true);
         this.renderPreview();
         this.updateLineNumbers();
         return true;
@@ -1178,6 +1370,7 @@
 
   // ===== 行操作: 上下移动与复制 =====
   MMWikiEditor.prototype.moveLines = function (direction) {
+    this.recordPreEditState();
     var ed = this.editor;
     var val = ed.value;
     var start = ed.selectionStart;
@@ -1207,11 +1400,13 @@
       var offset = nextChunk.length + 1;
       ed.setSelectionRange(start + offset, end + offset);
     }
+    this.pushHistory(true);
     this.renderPreview();
     this.updateLineNumbers();
   };
 
   MMWikiEditor.prototype.duplicateLine = function () {
+    this.recordPreEditState();
     var ed = this.editor;
     var val = ed.value;
     var start = ed.selectionStart;
@@ -1225,6 +1420,7 @@
     ed.setRangeText('\n' + lineText, lineEnd, lineEnd, 'end');
     var offset = lineText.length + 1;
     ed.setSelectionRange(start + offset, end + offset);
+    this.pushHistory(true);
     this.renderPreview();
     this.updateLineNumbers();
   };
@@ -1369,9 +1565,11 @@
 
   MMWikiEditor.prototype.replaceOne = function () {
     if (this.currentMatchIndex < 0 || this.currentMatchIndex >= this.findMatchesList.length) return;
+    this.recordPreEditState();
     var replaceText = this.replaceInput ? this.replaceInput.value : '';
     var m = this.findMatchesList[this.currentMatchIndex];
     this.editor.setRangeText(replaceText, m.start, m.end, 'end');
+    this.pushHistory(true);
     this.renderPreview();
     this.updateLineNumbers();
     this.performFind(this.findInput.value);
@@ -1383,8 +1581,10 @@
     var replaceText = this.replaceInput ? this.replaceInput.value : '';
     if (!query) return;
 
+    this.recordPreEditState();
     var regex = new RegExp(query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
     this.editor.value = this.editor.value.replace(regex, replaceText);
+    this.pushHistory(true);
     this.renderPreview();
     this.updateLineNumbers();
     this.performFind(query);
@@ -1397,6 +1597,7 @@
     this.editor.addEventListener('input', function () {
       self.renderPreview();
       self.updateStats();
+      self.pushHistory(false);
     });
 
     this.editor.addEventListener('keyup', function () { self.updateStats(); });
@@ -1407,7 +1608,24 @@
 
     // 键盘快捷键监听
     this.editor.addEventListener('keydown', function (e) {
-      // 1. 回车列表智能续行与空项退出
+      // 1. 撤销 / 重做 (Undo: Ctrl/Cmd+Z, Redo: Ctrl/Cmd+Y 或 Ctrl/Cmd+Shift+Z)
+      var isCtrl = e.ctrlKey || e.metaKey;
+      if (isCtrl && e.key.toLowerCase() === 'z') {
+        e.preventDefault();
+        if (e.shiftKey) {
+          self.redo();
+        } else {
+          self.undo();
+        }
+        return;
+      }
+      if (isCtrl && e.key.toLowerCase() === 'y') {
+        e.preventDefault();
+        self.redo();
+        return;
+      }
+
+      // 2. 回车列表智能续行与空项退出
       if (e.key === 'Enter') {
         if (self.handleEnter(e)) {
           e.preventDefault();
@@ -1415,9 +1633,10 @@
         }
       }
 
-      // 2. Tab 缩进 (2空格) / Shift+Tab 反缩进
+      // 3. Tab 缩进 (2空格) / Shift+Tab 反缩进
       if (e.key === 'Tab') {
         e.preventDefault();
+        self.recordPreEditState();
         var start = self.editor.selectionStart;
         var end = self.editor.selectionEnd;
         if (e.shiftKey) {
@@ -1432,48 +1651,47 @@
         } else {
           self.editor.setRangeText('  ', start, end, 'end');
         }
+        self.pushHistory(true);
         self.renderPreview();
         self.updateLineNumbers();
         return;
       }
 
-      // 3. 括号/引号/Markdown符号自动成对与选区包裹
+      // 4. 括号/引号/Markdown符号自动成对与选区包裹
       if (self.handleAutoPairs(e)) {
         e.preventDefault();
         return;
       }
 
-      // 4. Alt+Up / Alt+Down 整行移动
+      // 5. Alt+Up / Alt+Down 整行移动
       if (e.altKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
         e.preventDefault();
         self.moveLines(e.key === 'ArrowUp' ? -1 : 1);
         return;
       }
 
-      var isCtrl = e.ctrlKey || e.metaKey;
-
-      // 5. Ctrl+Shift+D 复制当前行
+      // 6. Ctrl+Shift+D 复制当前行
       if (isCtrl && e.shiftKey && e.key.toLowerCase() === 'd') {
         e.preventDefault();
         self.duplicateLine();
         return;
       }
 
-      // 6. Ctrl+F 查找与替换
+      // 7. Ctrl+F 查找与替换
       if (isCtrl && e.key.toLowerCase() === 'f') {
         e.preventDefault();
         self.openFindReplace();
         return;
       }
 
-      // 7. F11 或 Ctrl+Shift+F 沉浸全屏模式
+      // 8. F11 或 Ctrl+Shift+F 沉浸全屏模式
       if (e.key === 'F11' || (isCtrl && e.shiftKey && e.key.toLowerCase() === 'f')) {
         e.preventDefault();
         self.toggleZenMode();
         return;
       }
 
-      // 8. Esc 退出
+      // 9. Esc 退出
       if (e.key === 'Escape') {
         if (self.findBar && self.findBar.classList.contains('show')) {
           e.preventDefault();
@@ -1490,7 +1708,7 @@
         }
       }
 
-      // 9. 格式化快捷键
+      // 10. 格式化快捷键
       if (isCtrl && e.key.toLowerCase() === 'b') {
         e.preventDefault();
         self.insertMarkdown('bold');
@@ -1533,6 +1751,8 @@
         var action = btn.dataset.action;
         if (!action) return;
         switch (action) {
+          case 'undo': self.undo(); break;
+          case 'redo': self.redo(); break;
           case 'theme': self.toggleTheme(); break;
           case 'line-numbers': self.toggleLineNumbers(); break;
           case 'preview-only': self.togglePreviewOnly(); break;
