@@ -236,6 +236,24 @@ var Page = {
     },
 
     /**
+     * view document revisions & snapshots
+     */
+    history: function (documentId) {
+        layer.open({
+            type: 2,
+            skin: Layers.skin,
+            title: '<i class="fa fa-history" style="color: #2563eb; margin-right: 6px;"></i><strong>文档版本历史与快照恢复</strong>',
+            shadeClose: true,
+            shade : 0.2,
+            resize: true,
+            maxmin: true,
+            area: ["1020px", "660px"],
+            content: "/document/history?document_id=" + documentId,
+            padding: "0"
+        });
+    },
+
+    /**
      * 错误提示
      * @param element
      * @param message

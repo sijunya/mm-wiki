@@ -1,43 +1,710 @@
-<div class="container-fluid">
-    <div id="failedBox" class="hide"></div>
-    <div class="panel panel-default">
-        <div class="panel-body">
-            <div class="row">
+{{$logDocuments := .logDocuments}}
+{{$documentId := .document_id}}
+{{$document := .document}}
+{{$space := .space}}
+{{$isEditor := .is_editor}}
+
+<style>
+    :root {
+        --primary: #2563eb;
+        --primary-hover: #1d4ed8;
+        --primary-light: #eff6ff;
+        --border: #e2e8f0;
+        --border-hover: #cbd5e1;
+        --text-main: #0f172a;
+        --text-muted: #64748b;
+        --success: #10b981;
+        --success-light: #dcfce7;
+        --danger: #ef4444;
+        --danger-light: #fee2e2;
+        --bg-card: #ffffff;
+        --bg-page: #f8fafc;
+    }
+
+    body#frame-body {
+        background-color: var(--bg-page);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        color: var(--text-main);
+        padding: 16px 20px;
+    }
+
+    /* 顶部信息栏 */
+    .history-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 20px;
+        padding-bottom: 14px;
+        border-bottom: 1px solid var(--border);
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+
+    .history-title-area {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .history-title-icon {
+        width: 38px;
+        height: 38px;
+        border-radius: 9px;
+        background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+        color: var(--primary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        flex-shrink: 0;
+    }
+
+    .history-title-text h3 {
+        margin: 0 0 4px 0;
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--text-main);
+    }
+
+    .history-title-badges {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+    }
+
+    .badge-doc, .badge-space, .badge-disk {
+        padding: 2px 8px;
+        border-radius: 5px;
+        font-weight: 500;
+        border: 1px solid var(--border);
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .badge-doc { background: #ffffff; color: var(--text-main); }
+    .badge-space { background: #f1f5f9; color: var(--text-muted); }
+    .badge-disk { background: #f0fdf4; color: #15803d; border-color: #bbf7d0; font-size: 11px; }
+
+    /* 时间轴时间流 */
+    .timeline-container {
+        position: relative;
+        padding-left: 28px;
+        margin-bottom: 20px;
+    }
+
+    .timeline-container::before {
+        content: '';
+        position: absolute;
+        top: 14px;
+        bottom: 14px;
+        left: 9px;
+        width: 2px;
+        background: #e2e8f0;
+    }
+
+    .timeline-card {
+        position: relative;
+        background: #ffffff;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 14px 18px;
+        margin-bottom: 16px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+        transition: all 0.15s ease;
+    }
+
+    .timeline-card:hover {
+        border-color: #cbd5e1;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+    }
+
+    .timeline-dot {
+        position: absolute;
+        left: -28px;
+        top: 18px;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background: #ffffff;
+        border: 3px solid var(--primary);
+        box-shadow: 0 0 0 2px #eff6ff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .timeline-dot.dot-create { border-color: var(--success); }
+    .timeline-dot.dot-delete { border-color: var(--danger); }
+
+    .card-header-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 8px;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .version-tag {
+        font-weight: 700;
+        font-size: 13px;
+        color: var(--text-main);
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .action-badge {
+        font-size: 11px;
+        font-weight: 600;
+        padding: 2px 7px;
+        border-radius: 4px;
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+    }
+
+    .badge-create { background: var(--success-light); color: #15803d; }
+    .badge-update { background: var(--primary-light); color: var(--primary); }
+    .badge-delete { background: var(--danger-light); color: #b91c1c; }
+
+    .meta-user-time {
+        font-size: 12px;
+        color: var(--text-muted);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .meta-user-time span {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .card-body-comment {
+        font-size: 13px;
+        color: #334155;
+        background: #f8fafc;
+        border-left: 3px solid #cbd5e1;
+        padding: 8px 12px;
+        border-radius: 0 6px 6px 0;
+        margin-bottom: 10px;
+    }
+
+    .card-footer-actions {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding-top: 6px;
+        border-top: 1px dashed #f1f5f9;
+        font-size: 12px;
+    }
+
+    .snapshot-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        color: var(--text-muted);
+        font-size: 12px;
+    }
+
+    .snapshot-badge .size-pill {
+        background: #f1f5f9;
+        color: #475569;
+        padding: 1px 6px;
+        border-radius: 4px;
+        font-weight: 500;
+        border: 1px solid var(--border);
+    }
+
+    .action-buttons {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .btn-hist-action {
+        padding: 4px 10px;
+        font-size: 12px;
+        font-weight: 500;
+        border-radius: 6px;
+        border: 1px solid var(--border);
+        background: #ffffff;
+        color: var(--text-main);
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        transition: all 0.15s ease;
+        text-decoration: none !important;
+    }
+
+    .btn-hist-action:hover {
+        background: #f8fafc;
+        border-color: #cbd5e1;
+        color: var(--primary);
+    }
+
+    .btn-hist-action.btn-diff {
+        background: var(--primary-light);
+        color: var(--primary);
+        border-color: #bfdbfe;
+    }
+
+    .btn-hist-action.btn-diff:hover {
+        background: var(--primary);
+        color: #ffffff;
+    }
+
+    .btn-hist-action.btn-rollback {
+        background: #fff7ed;
+        color: #c2410c;
+        border-color: #fed7aa;
+    }
+
+    .btn-hist-action.btn-rollback:hover {
+        background: #ea580c;
+        color: #ffffff;
+        border-color: #ea580c;
+    }
+
+    /* 模态弹窗 (Diff 与 快照预览) */
+    .history-modal {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.6);
+        backdrop-filter: blur(4px);
+        z-index: 10000;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+    }
+
+    .history-modal.active {
+        display: flex;
+    }
+
+    .modal-box {
+        background: #ffffff;
+        border-radius: 12px;
+        width: 90vw;
+        max-width: 960px;
+        height: 85vh;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+        overflow: hidden;
+    }
+
+    .modal-box-header {
+        padding: 14px 20px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: #f8fafc;
+    }
+
+    .modal-box-header h4 {
+        margin: 0;
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--text-main);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .modal-close-btn {
+        background: none;
+        border: none;
+        font-size: 20px;
+        cursor: pointer;
+        color: var(--text-muted);
+        line-height: 1;
+    }
+
+    .modal-box-body {
+        flex: 1;
+        overflow-y: auto;
+        padding: 16px 20px;
+        background: #ffffff;
+    }
+
+    /* Diff 视图高亮样式 */
+    .diff-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-size: 12px;
+        line-height: 1.5;
+    }
+
+    .diff-row {
+        display: flex;
+        border-bottom: 1px solid #f1f5f9;
+    }
+
+    .diff-num {
+        width: 44px;
+        padding: 2px 8px;
+        text-align: right;
+        color: #94a3b8;
+        user-select: none;
+        background: #f8fafc;
+        border-right: 1px solid #e2e8f0;
+        flex-shrink: 0;
+    }
+
+    .diff-sign {
+        width: 24px;
+        text-align: center;
+        font-weight: bold;
+        flex-shrink: 0;
+    }
+
+    .diff-text {
+        flex: 1;
+        padding: 2px 10px;
+        white-space: pre-wrap;
+        word-break: break-all;
+    }
+
+    .diff-row-add {
+        background-color: #dcfce7;
+        color: #166534;
+    }
+
+    .diff-row-add .diff-sign {
+        color: #15803d;
+    }
+
+    .diff-row-del {
+        background-color: #fee2e2;
+        color: #991b1b;
+    }
+
+    .diff-row-del .diff-sign {
+        color: #dc2626;
+    }
+
+    .diff-row-same {
+        color: #334155;
+    }
+
+    .raw-preview-box {
+        width: 100%;
+        height: 100%;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-size: 13px;
+        line-height: 1.6;
+        white-space: pre-wrap;
+        word-break: break-all;
+        background: #f8fafc;
+        padding: 16px;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        overflow-y: auto;
+    }
+</style>
+
+<div class="container-fluid" style="padding: 0;">
+    <!-- 顶部状态栏 -->
+    <div class="history-header">
+        <div class="history-title-area">
+            <div class="history-title-icon">
+                <i class="fa fa-history"></i>
             </div>
-            <br>
-            <table class="table">
-                <thead>
-                <tr>
-                    <td class="w10p text-left"><strong>用户</strong></td>
-                    <td class="w10p text-left"><strong>操作</strong></td>
-                    <td class=""><strong>备注</strong></td>
-                    <td class="w20p center"><strong>时间</strong></td>
-                </tr>
-                </thead>
-                <tbody>
-                {{range $logDocument := .logDocuments}}
-                <tr>
-                    <td>{{$logDocument.username}}</td>
-                    <td>
-                    {{if eq $logDocument.action "1"}}
-                        <label class="text text-info">创建</label>
-                    {{else if eq $logDocument.action "2"}}
-                        <label class="text text-primary">修改</label>
-                    {{else if eq $logDocument.action "3"}}
-                        <label class="text text-danger">删除</label>
-                    {{end}}
-                    </td>
-                    <td>{{$logDocument.comment}}</td>
-                    <td class="center">
-                    {{dateFormat $logDocument.create_time "Y-m-d H:i:s"}}
-                    </td>
-                </tr>
-                {{end}}
-                </tbody>
-            </table>
+            <div class="history-title-text">
+                <h3>文档版本历史与快照恢复</h3>
+                <div class="history-title-badges">
+                    <span class="badge-doc"><i class="fa fa-file-text-o"></i> {{$document.name}}</span>
+                    <span class="badge-space"><i class="fa fa-cubes"></i> {{$space.name}}</span>
+                    <span class="badge-disk"><i class="fa fa-shield"></i> 30版本滚动归档 · Gzip高压缩防护</span>
+                </div>
+            </div>
         </div>
-        <div class="panel-footer">
-            {{template "paginator/default.html" .}}
+    </div>
+
+    <!-- 隐藏的当前活跃版本内容，用于差异比对 -->
+    <textarea id="current-doc-content" style="display:none;">{{.current_content}}</textarea>
+
+    <!-- 版本时间轴 -->
+    <div class="timeline-container">
+        {{range $index, $log := $logDocuments}}
+        <div class="timeline-card">
+            <div class="timeline-dot {{if eq $log.action "1"}}dot-create{{else if eq $log.action "3"}}dot-delete{{end}}"></div>
+            
+            <div class="card-header-row">
+                <div class="version-tag">
+                    <span>版本 #{{$log.log_document_id}}</span>
+                    {{if eq $log.action "1"}}
+                        <span class="action-badge badge-create"><i class="fa fa-plus-circle"></i> 创建</span>
+                    {{else if eq $log.action "2"}}
+                        <span class="action-badge badge-update"><i class="fa fa-pencil"></i> 修改</span>
+                    {{else if eq $log.action "3"}}
+                        <span class="action-badge badge-delete"><i class="fa fa-trash"></i> 删除</span>
+                    {{end}}
+                    {{if eq $index 0}}
+                        <span style="font-size: 11px; font-weight: 600; color: #2563eb; background: #dbeafe; padding: 1px 6px; border-radius: 10px;">当前活跃版本</span>
+                    {{end}}
+                </div>
+                
+                <div class="meta-user-time">
+                    <span><i class="fa fa-user-circle-o"></i> {{$log.username}}</span>
+                    <span><i class="fa fa-clock-o"></i> {{dateFormat $log.create_time "Y-m-d H:i:s"}}</span>
+                </div>
+            </div>
+
+            <div class="card-body-comment">
+                {{$log.comment}}
+            </div>
+
+            <div class="card-footer-actions">
+                <div class="snapshot-badge">
+                    {{if eq $log.has_snapshot "1"}}
+                        <span class="size-pill" title="标准 Gzip 高压缩存储体积"><i class="fa fa-file-archive-o"></i> 快照已归档 ({{$log.snapshot_size}})</span>
+                    {{else}}
+                        <span class="text-muted"><i class="fa fa-info-circle"></i> 早期纯操作日志（未产生正文快照）</span>
+                    {{end}}
+                </div>
+
+                <div class="action-buttons">
+                    {{if eq $log.has_snapshot "1"}}
+                        <button type="button" class="btn-hist-action" onclick="openSnapshotPreview('{{$log.log_document_id}}', '{{$log.comment}}')">
+                            <i class="fa fa-eye"></i> 查看快照
+                        </button>
+                        <button type="button" class="btn-hist-action btn-diff" onclick="openDiffModal('{{$log.log_document_id}}', '{{$log.comment}}')">
+                            <i class="fa fa-columns"></i> 与当前版本对比 (Diff)
+                        </button>
+                        {{if eq $isEditor true}}
+                        <button type="button" class="btn-hist-action btn-rollback" onclick="confirmRollback('{{$log.log_document_id}}')">
+                            <i class="fa fa-history"></i> 恢复此版本
+                        </button>
+                        {{end}}
+                    {{end}}
+                </div>
+            </div>
+        </div>
+        {{end}}
+    </div>
+
+    <div style="text-align: center; margin-bottom: 20px;">
+        {{template "paginator/default.html" .}}
+    </div>
+</div>
+
+<!-- 模态弹窗：快照原文预览 -->
+<div id="preview-modal" class="history-modal" onclick="closePreviewModal(event)">
+    <div class="modal-box">
+        <div class="modal-box-header">
+            <h4 id="preview-modal-title"><i class="fa fa-eye"></i> 快照原文预览</h4>
+            <button class="modal-close-btn" onclick="closePreviewModal(event)">&times;</button>
+        </div>
+        <div class="modal-box-body">
+            <pre id="preview-content-box" class="raw-preview-box"></pre>
         </div>
     </div>
 </div>
+
+<!-- 模态弹窗：Diff 可视化比对 -->
+<div id="diff-modal" class="history-modal" onclick="closeDiffModal(event)">
+    <div class="modal-box">
+        <div class="modal-box-header">
+            <h4 id="diff-modal-title"><i class="fa fa-columns"></i> 版本差异对比 (Diff)</h4>
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <span style="font-size: 12px; color: #166534; background: #dcfce7; padding: 2px 8px; border-radius: 4px;">+ 新增内容</span>
+                <span style="font-size: 12px; color: #991b1b; background: #fee2e2; padding: 2px 8px; border-radius: 4px;">- 当前相对此历史版本缺失的内容</span>
+                <button class="modal-close-btn" onclick="closeDiffModal(event)">&times;</button>
+            </div>
+        </div>
+        <div class="modal-box-body" style="padding: 0;">
+            <div id="diff-container" style="overflow-x: auto;"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    var currentDocId = '{{$documentId}}';
+
+    // 查看快照原文
+    function openSnapshotPreview(logId, comment) {
+        layer.load(2);
+        $.ajax({
+            url: '/document/snapshot?document_id=' + currentDocId + '&log_document_id=' + logId,
+            type: 'GET',
+            dataType: 'json',
+            success: function(res) {
+                layer.closeAll('loading');
+                if (res && res.code === 1) {
+                    var data = res.data || {};
+                    document.getElementById('preview-modal-title').innerHTML = '<i class="fa fa-eye"></i> 版本 #' + logId + ' 快照内容 <span style="font-size: 12px; font-weight: normal; color: #64748b;">(' + comment + ')</span>';
+                    document.getElementById('preview-content-box').textContent = data.content || '(空文档)';
+                    document.getElementById('preview-modal').classList.add('active');
+                } else {
+                    layer.msg((res && res.message) || '读取快照失败', {icon: 2});
+                }
+            },
+            error: function() {
+                layer.closeAll('loading');
+                layer.msg('网络异常，获取快照失败', {icon: 2});
+            }
+        });
+    }
+
+    function closePreviewModal(e) {
+        if (e.target.id === 'preview-modal' || e.target.classList.contains('modal-close-btn')) {
+            document.getElementById('preview-modal').classList.remove('active');
+        }
+    }
+
+    // 版本差异对比 (Diff)
+    function openDiffModal(logId, comment) {
+        layer.load(2);
+        $.ajax({
+            url: '/document/snapshot?document_id=' + currentDocId + '&log_document_id=' + logId,
+            type: 'GET',
+            dataType: 'json',
+            success: function(res) {
+                layer.closeAll('loading');
+                if (res && res.code === 1) {
+                    var snapshotText = (res.data && res.data.content) || '';
+                    var currentText = document.getElementById('current-doc-content').value || '';
+                    renderDiff(snapshotText, currentText, logId, comment);
+                    document.getElementById('diff-modal').classList.add('active');
+                } else {
+                    layer.msg((res && res.message) || '读取快照失败', {icon: 2});
+                }
+            },
+            error: function() {
+                layer.closeAll('loading');
+                layer.msg('网络异常，获取快照失败', {icon: 2});
+            }
+        });
+    }
+
+    function closeDiffModal(e) {
+        if (e.target.id === 'diff-modal' || e.target.classList.contains('modal-close-btn')) {
+            document.getElementById('diff-modal').classList.remove('active');
+        }
+    }
+
+    // 轻量高效行级 Diff 渲染引擎
+    function renderDiff(oldStr, newStr, logId, comment) {
+        var oldLines = oldStr.split(/\r?\n/);
+        var newLines = newStr.split(/\r?\n/);
+
+        // 简易 Myers/LCS 行级对比
+        var matrix = [];
+        for (var i = 0; i <= oldLines.length; i++) {
+            matrix[i] = [];
+            for (var j = 0; j <= newLines.length; j++) {
+                if (i === 0 || j === 0) {
+                    matrix[i][j] = 0;
+                } else if (oldLines[i - 1] === newLines[j - 1]) {
+                    matrix[i][j] = matrix[i - 1][j - 1] + 1;
+                } else {
+                    matrix[i][j] = Math.max(matrix[i - 1][j], matrix[i][j - 1]);
+                }
+            }
+        }
+
+        var diff = [];
+        var x = oldLines.length;
+        var y = newLines.length;
+        while (x > 0 || y > 0) {
+            if (x > 0 && y > 0 && oldLines[x - 1] === newLines[y - 1]) {
+                diff.unshift({ type: 'same', text: oldLines[x - 1], oldNum: x, newNum: y });
+                x--;
+                y--;
+            } else if (y > 0 && (x === 0 || matrix[x][y - 1] >= matrix[x - 1][y])) {
+                diff.unshift({ type: 'add', text: newLines[y - 1], newNum: y });
+                y--;
+            } else if (x > 0 && (y === 0 || matrix[x][y - 1] < matrix[x - 1][y])) {
+                diff.unshift({ type: 'del', text: oldLines[x - 1], oldNum: x });
+                x--;
+            }
+        }
+
+        var html = '<div class="diff-table">';
+        var addCount = 0;
+        var delCount = 0;
+
+        diff.forEach(function(item) {
+            if (item.type === 'add') {
+                addCount++;
+                html += '<div class="diff-row diff-row-add">';
+                html += '<span class="diff-num"></span><span class="diff-num">' + item.newNum + '</span>';
+                html += '<span class="diff-sign">+</span>';
+                html += '<span class="diff-text">' + escapeHtml(item.text) + '</span>';
+                html += '</div>';
+            } else if (item.type === 'del') {
+                delCount++;
+                html += '<div class="diff-row diff-row-del">';
+                html += '<span class="diff-num">' + item.oldNum + '</span><span class="diff-num"></span>';
+                html += '<span class="diff-sign">-</span>';
+                html += '<span class="diff-text">' + escapeHtml(item.text) + '</span>';
+                html += '</div>';
+            } else {
+                html += '<div class="diff-row diff-row-same">';
+                html += '<span class="diff-num">' + item.oldNum + '</span><span class="diff-num">' + item.newNum + '</span>';
+                html += '<span class="diff-sign"> </span>';
+                html += '<span class="diff-text">' + escapeHtml(item.text) + '</span>';
+                html += '</div>';
+            }
+        });
+        html += '</div>';
+
+        document.getElementById('diff-modal-title').innerHTML = '<i class="fa fa-columns"></i> 历史版本 #' + logId + ' ⟷ 当前版本差异对比 <span style="font-size: 12px; font-weight: normal; color: #64748b;">(+' + addCount + ' / -' + delCount + ' 行)</span>';
+        document.getElementById('diff-container').innerHTML = html;
+    }
+
+    function escapeHtml(text) {
+        if (!text) return '&nbsp;';
+        return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
+    // 恢复/回滚至此版本
+    function confirmRollback(logId) {
+        layer.confirm('确定要将文档内容彻底恢复至历史版本 #' + logId + ' 吗？<br><br><small style="color: #64748b;">提示：当前最新内容将被覆盖为该历史快照，同时系统会自动记录一条新的回滚审计日志，确保历史依然可追溯。</small>', {
+            title: '<i class="fa fa-history" style="color: #ea580c;"></i> 版本回滚确认',
+            btn: ['确认回滚', '取消'],
+            icon: 0
+        }, function(index) {
+            layer.close(index);
+            var loadIdx = layer.load(2);
+            $.ajax({
+                url: '/document/rollback',
+                type: 'POST',
+                data: {
+                    document_id: currentDocId,
+                    log_document_id: logId
+                },
+                dataType: 'json',
+                success: function(res) {
+                    layer.close(loadIdx);
+                    if (res && res.code === 1) {
+                        layer.msg('✓ 文档已成功回滚至版本 #' + logId, {icon: 1, time: 1200}, function() {
+                            // 刷新历史面板
+                            window.location.reload();
+                            // 联动刷新父级文档浏览页面
+                            if (parent && parent.location) {
+                                parent.location.reload();
+                            }
+                        });
+                    } else {
+                        layer.msg((res && res.message) || '回滚失败', {icon: 2});
+                    }
+                },
+                error: function() {
+                    layer.close(loadIdx);
+                    layer.msg('网络异常，回滚失败', {icon: 2});
+                }
+            });
+        });
+    }
+</script>

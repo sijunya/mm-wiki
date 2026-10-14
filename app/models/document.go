@@ -389,6 +389,11 @@ func (d *Document) UpdateDBAndFile(documentId string, spaceId string, document m
 	if err != nil {
 		return
 	}
+
+	// Read old content to detect change and preserve snapshot baseline if needed
+	oldContent, _ := utils.Document.GetContentByPageFile(oldPageFile)
+	contentChanged := (oldContent != documentContent)
+
 	// begin update
 	db := G.DB()
 	tx, err := db.Begin(db.Config)
@@ -425,10 +430,24 @@ func (d *Document) UpdateDBAndFile(documentId string, spaceId string, document m
 		return
 	}
 
-	// create document log
-	go func(documentId string, comment string, spaceId string) {
-		_, _ = LogDocumentModel.UpdateAction(updateValue["edit_user_id"].(string), documentId, comment, spaceId)
-	}(documentId, comment, spaceId)
+	// create document log and save snapshot
+	editUserId := updateValue["edit_user_id"].(string)
+	logId, lErr := LogDocumentModel.UpdateAction(editUserId, documentId, comment, spaceId)
+	if lErr == nil {
+		// Save snapshot for this version
+		_ = utils.Document.SaveSnapshot(spaceId, documentId, fmt.Sprintf("%d", logId), documentContent)
+
+		// If editing a legacy document whose previous log has no snapshot, save oldContent for it
+		if contentChanged && oldContent != "" {
+			prevLogs, pErr := LogDocumentModel.GetLogDocumentsByDocumentIdAndLimit(documentId, 1, 1)
+			if pErr == nil && len(prevLogs) > 0 {
+				prevLogId := prevLogs[0]["log_document_id"]
+				if !utils.Document.HasSnapshot(spaceId, documentId, prevLogId) {
+					_ = utils.Document.SaveSnapshot(spaceId, documentId, prevLogId, oldContent)
+				}
+			}
+		}
+	}
 
 	// create follow doc
 	go func(documentId string) {
@@ -436,6 +455,30 @@ func (d *Document) UpdateDBAndFile(documentId string, spaceId string, document m
 	}(documentId)
 
 	return
+}
+
+// RollbackDBAndFile restores document content from a historical snapshot
+func (d *Document) RollbackDBAndFile(documentId string, spaceId string, targetLogId string, editUserId string) (err error) {
+	// 1. Get snapshot content
+	targetContent, err := utils.Document.GetSnapshotContent(spaceId, documentId, targetLogId)
+	if err != nil {
+		return fmt.Errorf("读取历史快照失败: %s", err.Error())
+	}
+
+	// 2. Get current document metadata
+	document, err := d.GetDocumentByDocumentId(documentId)
+	if err != nil || len(document) == 0 {
+		return fmt.Errorf("文档不存在")
+	}
+
+	// 3. Update document with the historical content
+	updateValue := map[string]interface{}{
+		"name":         document["name"],
+		"edit_user_id": editUserId,
+	}
+	comment := fmt.Sprintf("恢复文档至历史版本 #%s", targetLogId)
+	_, err = d.UpdateDBAndFile(documentId, spaceId, document, targetContent, updateValue, comment)
+	return err
 }
 
 // get all documents

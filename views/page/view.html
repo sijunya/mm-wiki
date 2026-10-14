@@ -391,7 +391,7 @@
                 更新于 {{dateFormat $document.update_time "Y-m-d H:i"}}
             </span>
             <span class="meta-divider">·</span>
-            <a class="meta-action-link" name="history" data-link="/document/history?document_id={{$document.document_id}}">
+            <a class="meta-action-link" onclick="Page.history({{$document.document_id}})" title="查看历史版本、对比差异与回滚">
                 <i class="fa fa-history"></i> 查看历史
             </a>
             <a class="meta-action-link" onclick="Page.attachment({{$document.document_id}})">

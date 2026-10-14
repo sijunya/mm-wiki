@@ -249,7 +249,7 @@ func (this *DocumentController) History() {
 	}
 
 	// check space visit_level
-	isVisit, _, _ := this.GetDocumentPrivilege(space)
+	isVisit, isEditor, _ := this.GetDocumentPrivilege(space)
 	if !isVisit {
 		this.ViewError("您没有权限查看该空间修改历史！")
 	}
@@ -282,11 +282,97 @@ func (this *DocumentController) History() {
 				break
 			}
 		}
+		logId := logDocument["log_document_id"]
+		if utils.Document.HasSnapshot(spaceId, documentId, logId) {
+			logDocument["has_snapshot"] = "1"
+			logDocument["snapshot_size"] = formatFileSize(utils.Document.GetSnapshotFileSize(spaceId, documentId, logId))
+		} else {
+			logDocument["has_snapshot"] = "0"
+			logDocument["snapshot_size"] = "-"
+		}
 	}
 
+	// Current active document content
+	_, pageFile, _ := models.DocumentModel.GetParentDocumentsByDocument(document)
+	currentContent, _ := utils.Document.GetContentByPageFile(pageFile)
+
 	this.Data["logDocuments"] = logDocuments
+	this.Data["document_id"] = documentId
+	this.Data["document"] = document
+	this.Data["space"] = space
+	this.Data["is_editor"] = isEditor
+	this.Data["current_content"] = currentContent
 	this.SetPaginator(number, count)
 	this.viewLayout("document/history", "default")
+}
+
+// Get snapshot content
+func (this *DocumentController) Snapshot() {
+	documentId := this.GetString("document_id", "")
+	logDocumentId := this.GetString("log_document_id", "")
+	if documentId == "" || logDocumentId == "" {
+		this.jsonError("参数错误")
+	}
+
+	document, err := models.DocumentModel.GetDocumentByDocumentId(documentId)
+	if err != nil || len(document) == 0 {
+		this.jsonError("文档不存在")
+	}
+	spaceId := document["space_id"]
+	space, err := models.SpaceModel.GetSpaceBySpaceId(spaceId)
+	if err != nil || len(space) == 0 {
+		this.jsonError("空间不存在")
+	}
+	isVisit, _, _ := this.GetDocumentPrivilege(space)
+	if !isVisit {
+		this.jsonError("您没有权限查看历史快照！")
+	}
+
+	content, err := utils.Document.GetSnapshotContent(spaceId, documentId, logDocumentId)
+	if err != nil {
+		this.jsonError("获取快照内容失败：" + err.Error())
+	}
+
+	this.jsonSuccess("获取快照成功", map[string]interface{}{
+		"document_id":     documentId,
+		"log_document_id": logDocumentId,
+		"content":         content,
+	})
+}
+
+// Rollback to historical snapshot
+func (this *DocumentController) Rollback() {
+	if !this.IsPost() {
+		this.jsonError("请求方式错误")
+	}
+	documentId := this.GetString("document_id", "")
+	logDocumentId := this.GetString("log_document_id", "")
+	if documentId == "" || logDocumentId == "" {
+		this.jsonError("参数错误")
+	}
+
+	document, err := models.DocumentModel.GetDocumentByDocumentId(documentId)
+	if err != nil || len(document) == 0 {
+		this.jsonError("文档不存在")
+	}
+	spaceId := document["space_id"]
+	space, err := models.SpaceModel.GetSpaceBySpaceId(spaceId)
+	if err != nil || len(space) == 0 {
+		this.jsonError("空间不存在")
+	}
+	_, isEditor, _ := this.GetDocumentPrivilege(space)
+	if !isEditor {
+		this.jsonError("您没有权限回滚该空间下的文档！")
+	}
+
+	err = models.DocumentModel.RollbackDBAndFile(documentId, spaceId, logDocumentId, this.UserId)
+	if err != nil {
+		this.ErrorLog(fmt.Sprintf("回滚文档 %s 至版本 %s 失败: %s", documentId, logDocumentId, err.Error()))
+		this.jsonError("回滚文档失败: " + err.Error())
+	}
+
+	this.InfoLog(fmt.Sprintf("回滚文档 %s 至历史版本 %s 成功", documentId, logDocumentId))
+	this.jsonSuccess("文档回滚成功！", nil, fmt.Sprintf("/document/history?document_id=%s", documentId))
 }
 
 // move document

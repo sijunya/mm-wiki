@@ -1,10 +1,13 @@
 package utils
 
 import (
+	"bytes"
+	"compress/gzip"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"sort"
 	"sync"
 )
 
@@ -212,3 +215,94 @@ func (d *document) DeleteAttachment(attachments []map[string]string) error {
 	}
 	return nil
 }
+
+// SaveSnapshot compresses content with gzip and saves it under data/markdowns/{spaceId}/history/{documentId}/{logDocumentId}.md.gz
+// It automatically maintains a maximum retention of maxKeep (default 30) revisions per document.
+func (d *document) SaveSnapshot(spaceId string, documentId string, logDocumentId string, content string) error {
+	if content == "" || spaceId == "" || documentId == "" || logDocumentId == "" {
+		return nil
+	}
+	d.lock.Lock()
+	defer d.lock.Unlock()
+
+	historyDir := filepath.Join(d.MarkdownAbsDir, spaceId, "history", documentId)
+	if err := os.MkdirAll(historyDir, 0777); err != nil {
+		return err
+	}
+
+	snapshotFile := filepath.Join(historyDir, fmt.Sprintf("%s.md.gz", logDocumentId))
+
+	var buf bytes.Buffer
+	gzWriter := gzip.NewWriter(&buf)
+	if _, err := gzWriter.Write([]byte(content)); err != nil {
+		_ = gzWriter.Close()
+		return err
+	}
+	if err := gzWriter.Close(); err != nil {
+		return err
+	}
+
+	if err := ioutil.WriteFile(snapshotFile, buf.Bytes(), 0644); err != nil {
+		return err
+	}
+
+	// Retention policy: Keep at most 30 snapshots per document
+	d.cleanOldSnapshots(historyDir, 30)
+	return nil
+}
+
+func (d *document) cleanOldSnapshots(dir string, maxKeep int) {
+	entries, err := ioutil.ReadDir(dir)
+	if err != nil || len(entries) <= maxKeep {
+		return
+	}
+	// Sort by ModTime ascending (oldest first)
+	sort.Slice(entries, func(i, j int) bool {
+		return entries[i].ModTime().Before(entries[j].ModTime())
+	})
+	deleteCount := len(entries) - maxKeep
+	for i := 0; i < deleteCount; i++ {
+		_ = os.Remove(filepath.Join(dir, entries[i].Name()))
+	}
+}
+
+// GetSnapshotContent reads and decompresses a gzipped snapshot
+func (d *document) GetSnapshotContent(spaceId string, documentId string, logDocumentId string) (string, error) {
+	d.lock.Lock()
+	defer d.lock.Unlock()
+
+	snapshotFile := filepath.Join(d.MarkdownAbsDir, spaceId, "history", documentId, fmt.Sprintf("%s.md.gz", logDocumentId))
+	data, err := ioutil.ReadFile(snapshotFile)
+	if err != nil {
+		return "", err
+	}
+
+	gzReader, err := gzip.NewReader(bytes.NewReader(data))
+	if err != nil {
+		return "", err
+	}
+	defer gzReader.Close()
+
+	decompressed, err := ioutil.ReadAll(gzReader)
+	if err != nil {
+		return "", err
+	}
+	return string(decompressed), nil
+}
+
+// HasSnapshot checks if a snapshot exists for this revision
+func (d *document) HasSnapshot(spaceId string, documentId string, logDocumentId string) bool {
+	snapshotFile := filepath.Join(d.MarkdownAbsDir, spaceId, "history", documentId, fmt.Sprintf("%s.md.gz", logDocumentId))
+	fi, err := os.Stat(snapshotFile)
+	return err == nil && !fi.IsDir()
+}
+
+// GetSnapshotFileSize returns the gzipped snapshot size in bytes
+func (d *document) GetSnapshotFileSize(spaceId string, documentId string, logDocumentId string) int64 {
+	snapshotFile := filepath.Join(d.MarkdownAbsDir, spaceId, "history", documentId, fmt.Sprintf("%s.md.gz", logDocumentId))
+	if fi, err := os.Stat(snapshotFile); err == nil {
+		return fi.Size()
+	}
+	return 0
+}
+
