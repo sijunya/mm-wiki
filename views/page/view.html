@@ -13,13 +13,22 @@
         overflow-x: hidden !important;
     }
 
-    /* 文档居中舒适阅读画布，与现代编辑预览 100% 统一 */
+    /* 沉浸式自适应工作区画布，默认 100% 宽度自适应，全面兼容宽屏、超宽表格与复杂图表 */
     .view-doc-wrapper {
-        max-width: 960px;
-        margin: 0 auto;
-        padding: 24px 48px 100px 48px;
+        width: 100%;
+        max-width: 100%;
+        margin: 0;
+        padding: 24px 36px 100px 36px;
         position: relative;
         box-sizing: border-box;
+        transition: max-width 0.2s ease, padding 0.2s ease;
+    }
+
+    /* 可选标准居中阅读视宽模式 */
+    .view-doc-wrapper.is-narrow {
+        max-width: 980px;
+        margin: 0 auto;
+        padding: 24px 32px 100px 32px;
     }
 
     /* 顶部元信息与操作栏 */
@@ -330,6 +339,9 @@
                 <button type="button" class="doc-action-btn" id="header-toc-btn" style="display: none;">
                     <i class="fa fa-list-ul"></i> 目录
                 </button>
+                <button type="button" class="doc-action-btn" id="width-toggle-btn" title="切换全宽/居中阅读模式">
+                    <i class="fa fa-compress"></i> <span>居中</span>
+                </button>
                 {{if eq $collectionId "0"}}
                     <a class="doc-action-btn" onclick="Common.ajaxSubmit('/collection/add?type=1&resource_id={{$document.document_id}}')">
                         <i class="glyphicon glyphicon-star-empty"></i> 收藏
@@ -545,6 +557,28 @@
             if (!$(e.target).closest("#view-toc-panel, #header-toc-btn, #view-toc-floating-btn").length) {
                 $("#view-toc-panel").fadeOut(150);
             }
+        });
+
+        // 宽度模式切换逻辑（默认 100% 全宽自适应，支持一键切换居中阅读并持久化）
+        var savedWidthMode = localStorage.getItem("mmwiki_view_width_mode") || "full";
+        function applyWidthMode(mode) {
+            if (mode === "narrow") {
+                $(".view-doc-wrapper").addClass("is-narrow");
+                $("#width-toggle-btn").html('<i class="fa fa-arrows-alt"></i> <span>全宽</span>');
+                $("#width-toggle-btn").attr("title", "当前为居中模式，点击切换为全宽自适应");
+            } else {
+                $(".view-doc-wrapper").removeClass("is-narrow");
+                $("#width-toggle-btn").html('<i class="fa fa-compress"></i> <span>居中</span>');
+                $("#width-toggle-btn").attr("title", "当前为全宽模式，点击切换为居中阅读模式");
+            }
+        }
+        applyWidthMode(savedWidthMode);
+
+        $("#width-toggle-btn").on("click", function() {
+            var currentMode = $(".view-doc-wrapper").hasClass("is-narrow") ? "narrow" : "full";
+            var nextMode = (currentMode === "narrow") ? "full" : "narrow";
+            localStorage.setItem("mmwiki_view_width_mode", nextMode);
+            applyWidthMode(nextMode);
         });
     });
 </script>
