@@ -18,11 +18,22 @@
         padding-top: 0 !important;
     }
 
+    /* 沉浸式自适应全宽分享容器，默认 100% 宽度，彻底解除宽度限制 */
     .share-doc-container {
+        width: 100%;
+        max-width: 100%;
+        margin: 20px auto 60px auto;
+        padding: 0 32px;
+        position: relative;
+        box-sizing: border-box;
+        transition: max-width 0.2s ease, padding 0.2s ease;
+    }
+
+    /* 可选标准居中阅读视宽模式 */
+    .share-doc-container.is-narrow {
         max-width: 1000px;
         margin: 32px auto 80px auto;
         padding: 0 16px;
-        position: relative;
     }
 
     .share-doc-card {
@@ -32,22 +43,66 @@
         box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
         overflow: hidden;
         text-align: left !important;
+        width: 100%;
+        box-sizing: border-box;
     }
 
     .share-doc-header {
-        padding: 32px 48px 24px 48px;
+        padding: 28px 40px 20px 40px;
         border-bottom: 1px solid #eaecef;
         background: #fafbfc;
         text-align: left !important;
     }
 
+    .share-doc-header-top {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 12px;
+    }
+
     .share-doc-title {
-        margin: 0 0 12px 0;
+        margin: 0;
         font-size: 26px;
         font-weight: 700;
         color: #1f2328;
         line-height: 1.35;
         text-align: left !important;
+        flex: 1;
+        min-width: 0;
+        word-break: break-word;
+    }
+
+    .share-doc-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-shrink: 0;
+    }
+
+    .doc-action-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 14px;
+        font-size: 13px;
+        font-weight: 500;
+        border-radius: 6px;
+        border: 1px solid #d0d7de;
+        background: #ffffff;
+        color: #24292e !important;
+        text-decoration: none !important;
+        transition: all 0.15s ease;
+        cursor: pointer;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+        line-height: normal;
+    }
+
+    .doc-action-btn:hover {
+        background: #f3f4f6;
+        border-color: #8c959f;
+        color: #1f2328 !important;
     }
 
     .share-doc-meta {
@@ -71,7 +126,7 @@
     }
 
     .share-doc-body {
-        padding: 36px 48px 60px 48px;
+        padding: 36px 40px 60px 40px;
         text-align: left !important;
     }
 
@@ -82,20 +137,27 @@
         text-align: left !important;
     }
 
-    /* 悬浮分享面板 */
+    /* 侧边悬浮分享面板：仅在居中且宽屏模式下展示，全宽模式隐藏以绝不遮挡正文 */
     .share-floating-panel {
+        display: none;
         position: fixed;
         top: 140px;
-        right: calc(50% - 500px - 140px);
         width: 120px;
         background: #ffffff;
         border: 1px solid #e1e4e8;
         border-radius: 10px;
-        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
         padding: 12px 10px;
         text-align: center;
         z-index: 1000;
-        transition: opacity 0.2s;
+        transition: all 0.2s;
+    }
+
+    @media (min-width: 1360px) {
+        .share-doc-container.is-narrow ~ .share-floating-panel {
+            display: block;
+            right: calc(50% - 500px - 140px);
+        }
     }
 
     .share-floating-label {
@@ -109,13 +171,14 @@
         gap: 4px;
     }
 
-    #document-qrcode {
+    #document-qrcode, #modal-qrcode {
         display: flex;
         justify-content: center;
         margin: 4px 0 8px 0;
     }
 
-    #document-qrcode canvas, #document-qrcode img {
+    #document-qrcode canvas, #document-qrcode img,
+    #modal-qrcode canvas, #modal-qrcode img {
         border-radius: 4px;
     }
 
@@ -123,6 +186,36 @@
         font-size: 11px;
         color: #8c959f;
         margin: 0;
+    }
+
+    /* 扫码分享弹窗模态框 */
+    .share-qrcode-modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.45);
+        z-index: 2000;
+        justify-content: center;
+        align-items: center;
+        animation: modalFadeIn 0.15s ease;
+    }
+
+    @keyframes modalFadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
+    .share-qrcode-dialog {
+        background: #ffffff;
+        padding: 24px 28px;
+        border-radius: 12px;
+        box-shadow: 0 12px 36px rgba(0, 0, 0, 0.18);
+        text-align: center;
+        width: 280px;
+        box-sizing: border-box;
     }
 
     .share-footer {
@@ -142,15 +235,19 @@
         text-decoration: underline;
     }
 
-    @media (max-width: 1300px) {
-        .share-floating-panel {
-            position: static;
-            width: 100%;
-            margin-top: 24px;
-            box-shadow: none;
+    @media (max-width: 768px) {
+        .share-doc-container {
+            padding: 0 12px;
+            margin: 12px auto 40px auto;
         }
         .share-doc-header, .share-doc-body {
-            padding: 24px 20px;
+            padding: 20px 16px;
+        }
+        .share-doc-header-top {
+            flex-direction: column;
+        }
+        .share-doc-actions {
+            width: 100%;
         }
     }
 </style>
@@ -162,7 +259,17 @@
     <div class="share-doc-card">
         <!-- 头部标题与元信息 -->
         <div class="share-doc-header">
-            <h1 class="share-doc-title"><i class="fa fa-file-word-o" style="color: #2563eb; margin-right: 6px;"></i>{{$document.name}}</h1>
+            <div class="share-doc-header-top">
+                <h1 class="share-doc-title"><i class="fa fa-file-word-o" style="color: #2563eb; margin-right: 8px;"></i>{{$document.name}}</h1>
+                <div class="share-doc-actions">
+                    <button type="button" class="doc-action-btn" id="share-width-toggle-btn" title="切换全宽/居中阅读模式">
+                        <i class="fa fa-compress"></i> <span>居中</span>
+                    </button>
+                    <button type="button" class="doc-action-btn" id="share-qrcode-toggle-btn" title="显示手机扫码分享二维码">
+                        <i class="fa fa-qrcode"></i> <span>扫码分享</span>
+                    </button>
+                </div>
+            </div>
             <div class="share-doc-meta">
                 <span class="share-meta-item">
                     <i class="fa fa-folder-open-o"></i>
@@ -194,20 +301,34 @@
         </div>
     </div>
 
-    <!-- 浮动微信分享扫一扫 -->
-    <div class="share-floating-panel" id="display_section">
-        <div class="share-floating-label">
-            <i class="fa fa-wechat" style="color: #07c160;"></i> 扫码阅读
-        </div>
-        <div id="document-qrcode"></div>
-        <p class="share-floating-tip">微信扫一扫分享</p>
-    </div>
-
     <!-- 底部版权 -->
     <footer class="share-footer">
         © {{.copyright}} &nbsp;·&nbsp;
         <a target="_blank" href="https://github.com/phachon/mm-wiki">Powered by MM-Wiki {{.version}}</a>
     </footer>
+</div>
+
+<!-- 侧边悬浮微信分享扫一扫（居中大屏模式下展示） -->
+<div class="share-floating-panel" id="display_section">
+    <div class="share-floating-label">
+        <i class="fa fa-wechat" style="color: #07c160;"></i> 扫码阅读
+    </div>
+    <div id="document-qrcode"></div>
+    <p class="share-floating-tip">微信扫一扫分享</p>
+</div>
+
+<!-- 弹窗式微信分享扫一扫（全屏/点击按钮时展示） -->
+<div class="share-qrcode-modal" id="share-qrcode-modal">
+    <div class="share-qrcode-dialog">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <span style="font-weight: 600; font-size: 14px; color: #1f2328;">
+                <i class="fa fa-wechat" style="color: #07c160; margin-right: 6px;"></i>微信扫码阅读
+            </span>
+            <button type="button" id="share-modal-close" style="border: none; background: transparent; font-size: 20px; line-height: 1; cursor: pointer; color: #656d76;">&times;</button>
+        </div>
+        <div id="modal-qrcode"></div>
+        <p style="font-size: 12px; color: #8c959f; margin: 8px 0 0 0;">微信扫一扫，随时随地阅读与分享</p>
+    </div>
 </div>
 
 <!-- 图片及 Mermaid SVG 全屏大图预览 -->
@@ -245,10 +366,54 @@
             }
         });
 
+        // 渲染侧边与弹窗二维码
         $('#document-qrcode').qrcode({
             width: 96,
             height: 96,
             text: window.location.href
+        });
+
+        $('#modal-qrcode').qrcode({
+            width: 160,
+            height: 160,
+            text: window.location.href
+        });
+
+        // 宽度模式切换逻辑（默认 100% 全宽自适应，支持一键切换居中阅读并持久化）
+        var savedShareWidthMode = localStorage.getItem("mmwiki_share_width_mode") || "full";
+        function applyShareWidthMode(mode) {
+            if (mode === "narrow") {
+                $(".share-doc-container").addClass("is-narrow");
+                $("#share-width-toggle-btn").html('<i class="fa fa-arrows-alt"></i> <span>全宽</span>');
+                $("#share-width-toggle-btn").attr("title", "当前为居中模式，点击切换为全宽自适应");
+            } else {
+                $(".share-doc-container").removeClass("is-narrow");
+                $("#share-width-toggle-btn").html('<i class="fa fa-compress"></i> <span>居中</span>');
+                $("#share-width-toggle-btn").attr("title", "当前为全宽模式，点击切换为居中阅读模式");
+            }
+        }
+        applyShareWidthMode(savedShareWidthMode);
+
+        $("#share-width-toggle-btn").on("click", function() {
+            var currentMode = $(".share-doc-container").hasClass("is-narrow") ? "narrow" : "full";
+            var nextMode = (currentMode === "narrow") ? "full" : "narrow";
+            localStorage.setItem("mmwiki_share_width_mode", nextMode);
+            applyShareWidthMode(nextMode);
+        });
+
+        // 弹窗式二维码开关
+        $("#share-qrcode-toggle-btn").on("click", function() {
+            $("#share-qrcode-modal").css("display", "flex");
+        });
+
+        $("#share-modal-close").on("click", function() {
+            $("#share-qrcode-modal").hide();
+        });
+
+        $("#share-qrcode-modal").on("click", function(e) {
+            if ($(e.target).is("#share-qrcode-modal")) {
+                $(this).hide();
+            }
         });
     });
 </script>
