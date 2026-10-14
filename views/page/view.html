@@ -288,21 +288,236 @@
         background: #f3f4f6;
     }
 
+    /* 大屏与超宽屏双栏响应式排版 (Ultra-Wide / 2K / 4K) */
+    .view-doc-flex-container {
+        display: flex;
+        align-items: flex-start;
+        justify-content: center;
+        gap: 36px;
+        width: 100%;
+        position: relative;
+    }
+
+    .view-doc-main-content {
+        flex: 1;
+        min-width: 0;
+        max-width: 100%;
+        transition: max-width 0.2s ease;
+    }
+
+    /* 居中阅读模式限制黄金宽度 */
+    .view-doc-wrapper.is-narrow .view-doc-main-content {
+        max-width: 980px;
+    }
+
+    /* 全宽自适应模式 */
+    .view-doc-wrapper:not(.is-narrow) .view-doc-main-content {
+        max-width: 1600px;
+    }
+
+    /* 大屏专属右侧固定吸顶大纲导航 (Sticky Outline TOC) */
+    .view-doc-sticky-toc-wrapper {
+        width: 250px;
+        flex-shrink: 0;
+        position: sticky;
+        top: 24px;
+        max-height: calc(100vh - 48px);
+        overflow-y: auto;
+        padding-left: 18px;
+        border-left: 1px solid #eef2f6;
+    }
+
+    @media (max-width: 1399px) {
+        .view-doc-sticky-toc-wrapper {
+            display: none !important;
+        }
+    }
+
+    @media (min-width: 1400px) {
+        .view-doc-sticky-toc-wrapper {
+            display: block;
+        }
+        body.has-sticky-toc #header-toc-btn,
+        body.has-sticky-toc #view-toc-floating-btn {
+            display: none !important;
+        }
+    }
+
+    .sticky-toc-title {
+        font-size: 12px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #94a3b8;
+        margin-bottom: 12px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .sticky-toc-content ul {
+        list-style: none;
+        padding-left: 12px;
+        margin: 0;
+    }
+
+    .sticky-toc-content > ul {
+        padding-left: 0;
+    }
+
+    .sticky-toc-content li {
+        margin: 5px 0;
+        font-size: 13px;
+        line-height: 1.4;
+    }
+
+    .sticky-toc-content a {
+        color: #64748b;
+        text-decoration: none;
+        display: block;
+        padding: 3px 6px;
+        border-radius: 4px;
+        transition: all 0.15s ease;
+        word-break: break-word;
+    }
+
+    .sticky-toc-content a:hover {
+        color: #2563eb;
+        background: #f1f5f9;
+    }
+
+    .sticky-toc-content a.active {
+        color: #2563eb;
+        font-weight: 600;
+        background: #eff6ff;
+    }
+
+    /* 悬浮操作胶囊组 */
+    .view-floating-action-group {
+        position: fixed;
+        bottom: 24px;
+        right: 24px;
+        z-index: 1000;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .view-floating-btn {
+        width: 42px;
+        height: 42px;
+        border-radius: 50%;
+        background: #ffffff;
+        border: 1px solid #d0d7de;
+        color: #24292e;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
+        cursor: pointer;
+        transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        user-select: none;
+        font-size: 14px;
+    }
+
+    .view-floating-btn:hover {
+        background: #2563eb;
+        color: #ffffff;
+        border-color: #2563eb;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 18px rgba(37, 99, 235, 0.35);
+    }
+
+    #view-mobile-space-fab {
+        background: #2563eb;
+        color: #ffffff;
+        border-color: #2563eb;
+    }
+
+    /* 移动端 (max-width: 768px) 极致体验增强 */
     @media (max-width: 768px) {
         .view-doc-wrapper {
-            padding: 20px 16px 80px 16px;
+            padding: 16px 14px 90px 14px !important;
         }
         .view-doc-title-row {
-            flex-direction: column;
+            flex-direction: column !important;
+            gap: 12px !important;
+        }
+        .view-doc-title {
+            font-size: 21px !important;
         }
         .view-doc-actions {
-            width: 100%;
-            flex-wrap: wrap;
+            width: 100% !important;
+            flex-wrap: wrap !important;
+            gap: 6px !important;
         }
+        .doc-action-btn {
+            padding: 5px 10px !important;
+            font-size: 12px !important;
+        }
+        .view-doc-meta {
+            font-size: 12px !important;
+            line-height: 1.6 !important;
+        }
+
+        /* 移动端目录变为 Bottom Sheet 底栏抽屉 */
         .view-toc-panel {
-            right: 16px !important;
-            left: 16px !important;
-            width: auto !important;
+            position: fixed !important;
+            top: auto !important;
+            bottom: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            max-height: 72vh !important;
+            border-radius: 20px 20px 0 0 !important;
+            box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.25) !important;
+            border: none !important;
+            border-top: 1px solid #e2e8f0 !important;
+            animation: sheetUp 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
+            z-index: 99999 !important;
+        }
+        @keyframes sheetUp {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
+        }
+        .view-toc-header {
+            padding: 12px 20px 10px 20px !important;
+            background: #ffffff !important;
+            border-bottom: 1px solid #f1f5f9 !important;
+            border-radius: 20px 20px 0 0 !important;
+            position: relative !important;
+        }
+        .view-toc-header::before {
+            content: '';
+            display: block;
+            width: 38px;
+            height: 4px;
+            background: #cbd5e1;
+            border-radius: 2px;
+            position: absolute;
+            top: 6px;
+            left: calc(50% - 19px);
+        }
+        .view-toc-body {
+            max-height: calc(72vh - 60px) !important;
+            padding: 12px 20px 24px 20px !important;
+            -webkit-overflow-scrolling: touch !important;
+        }
+
+        /* 移动端表格自适应横向滑动手势 */
+        .preview-content table {
+            display: block !important;
+            overflow-x: auto !important;
+            -webkit-overflow-scrolling: touch !important;
+            max-width: 100% !important;
+        }
+
+        /* 移动端代码块自适应 */
+        .preview-content pre {
+            padding: 12px !important;
+            font-size: 12.5px !important;
+            border-radius: 8px !important;
         }
     }
 
@@ -424,135 +639,160 @@
 {{$createUser := .create_user}}{{$editUser := .edit_user}}{{$collectionId := .collection_id}}{{$space := .space}}
 
 <div class="view-doc-wrapper">
-    <!-- 顶部元信息与操作栏 -->
-    <div class="view-doc-header">
-        <!-- 面包屑路径 -->
-        <div class="view-doc-breadcrumb">
-            <i class="fa fa-folder-open-o" style="color: #2563eb;"></i>
-            {{range $parentDocument := $parentDocuments}}
-                {{if eq $parentDocument.parent_id "0"}}
-                    <strong><a target="_parent" href="/document/index?document_id={{$parentDocument.document_id}}">{{$parentDocument.name}}</a></strong>
-                {{else}}
-                    <span class="breadcrumb-sep">/</span>
-                    <strong><a target="_parent" href="/document/index?document_id={{$parentDocument.document_id}}">{{$parentDocument.name}}</a></strong>
-                {{end}}
-            {{end}}
-        </div>
+    <div class="view-doc-flex-container">
+        <div class="view-doc-main-content">
+            <!-- 顶部元信息与操作栏 -->
+            <div class="view-doc-header">
+                <!-- 面包屑路径 -->
+                <div class="view-doc-breadcrumb">
+                    <i class="fa fa-folder-open-o" style="color: #2563eb;"></i>
+                    {{range $parentDocument := $parentDocuments}}
+                        {{if eq $parentDocument.parent_id "0"}}
+                            <strong><a target="_parent" href="/document/index?document_id={{$parentDocument.document_id}}">{{$parentDocument.name}}</a></strong>
+                        {{else}}
+                            <span class="breadcrumb-sep">/</span>
+                            <strong><a target="_parent" href="/document/index?document_id={{$parentDocument.document_id}}">{{$parentDocument.name}}</a></strong>
+                        {{end}}
+                    {{end}}
+                </div>
 
-        <!-- 标题与快捷操作按钮行 -->
-        <div class="view-doc-title-row">
-            <h1 class="view-doc-title">{{$document.name}}</h1>
+                <!-- 标题与快捷操作按钮行 -->
+                <div class="view-doc-title-row">
+                    <h1 class="view-doc-title">{{$document.name}}</h1>
 
-            <div class="view-doc-actions">
-                {{if eq .is_editor true}}
-                    <a class="doc-action-btn btn-primary-action" href="/page/edit?document_id={{$document.document_id}}">
-                        <i class="glyphicon glyphicon-pencil"></i> 编辑
-                    </a>
-                {{end}}
-                <button type="button" class="doc-action-btn" id="header-toc-btn" style="display: none;">
-                    <i class="fa fa-list-ul"></i> 目录
-                </button>
-                <button type="button" class="doc-action-btn" id="width-toggle-btn" title="切换全宽/居中阅读模式">
-                    <i class="fa fa-compress"></i> <span>居中</span>
-                </button>
-                {{if eq $collectionId "0"}}
-                    <a class="doc-action-btn" onclick="Common.ajaxSubmit('/collection/add?type=1&resource_id={{$document.document_id}}')">
-                        <i class="glyphicon glyphicon-star-empty"></i> 收藏
-                    </a>
-                {{else}}
-                    <a class="doc-action-btn" onclick="Common.ajaxSubmit('/collection/cancel?collection_id={{$collectionId}}')">
-                        <i class="glyphicon glyphicon-star"></i> 取消收藏
-                    </a>
-                {{end}}
-                {{if eq $space.is_share "1"}}
-                    <a class="doc-action-btn" name="share" href="/page/display?document_id={{$document.document_id}}" target="_blank">
-                        <i class="glyphicon glyphicon-share-alt"></i> 分享
-                    </a>
-                {{end}}
-                {{if eq $space.is_export "1"}}
-                    <div class="dropdown" style="display: inline-block;">
-                        <button type="button" class="doc-action-btn dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" title="导出多格式文档或打印">
-                            <i class="glyphicon glyphicon-export"></i> 导出 <span class="caret"></span>
+                    <div class="view-doc-actions">
+                        <!-- 移动端空间文档目录抽屉呼出按钮 -->
+                        <button type="button" class="doc-action-btn visible-xs" onclick="openSpaceTree()" title="展开空间文档目录">
+                            <i class="fa fa-bars text-primary"></i> <span>目录</span>
                         </button>
-                        <ul class="dropdown-menu dropdown-menu-right modern-export-dropdown">
-                            <li class="dropdown-header"><i class="fa fa-download"></i> 导出本地文件</li>
-                            <li>
-                                <a href="/page/export?document_id={{$document.document_id}}&output=md">
-                                    <i class="fa fa-file-text-o text-primary"></i> <strong>Markdown (.md)</strong>
-                                    <span class="export-desc">直接导出原生 Markdown 源文件</span>
-                                </a>
-                            </li>
-                            <li>
-                                <a href="/page/export?document_id={{$document.document_id}}&output=html" target="_blank">
-                                    <i class="fa fa-file-code-o text-success"></i> <strong>离线网页 (.html)</strong>
-                                    <span class="export-desc">独立离线单文件，含完整样式与排版</span>
-                                </a>
-                            </li>
-                            <li>
-                                <a href="/page/export?document_id={{$document.document_id}}&output=zip">
-                                    <i class="fa fa-file-archive-o text-warning"></i> <strong>完整归档包 (.zip)</strong>
-                                    <span class="export-desc">打包 Markdown 原文与全部关联附件</span>
-                                </a>
-                            </li>
-                            <li role="separator" class="divider"></li>
-                            <li class="dropdown-header"><i class="fa fa-print"></i> 打印与交付</li>
-                            <li>
-                                <a href="javascript:void(0)" onclick="window.print()">
-                                    <i class="fa fa-print text-info"></i> <strong>打印 / 另存为 PDF</strong>
-                                    <span class="export-desc">呼起系统打印，排版净化直出 PDF</span>
-                                </a>
-                            </li>
-                        </ul>
+                        {{if eq .is_editor true}}
+                            <a class="doc-action-btn btn-primary-action" href="/page/edit?document_id={{$document.document_id}}">
+                                <i class="glyphicon glyphicon-pencil"></i> 编辑
+                            </a>
+                        {{end}}
+                        <button type="button" class="doc-action-btn" id="header-toc-btn" style="display: none;">
+                            <i class="fa fa-list-ul"></i> 目录
+                        </button>
+                        <button type="button" class="doc-action-btn" id="width-toggle-btn" title="切换全宽/居中阅读模式">
+                            <i class="fa fa-compress"></i> <span>居中</span>
+                        </button>
+                        {{if eq $collectionId "0"}}
+                            <a class="doc-action-btn" onclick="Common.ajaxSubmit('/collection/add?type=1&resource_id={{$document.document_id}}')">
+                                <i class="glyphicon glyphicon-star-empty"></i> 收藏
+                            </a>
+                        {{else}}
+                            <a class="doc-action-btn" onclick="Common.ajaxSubmit('/collection/cancel?collection_id={{$collectionId}}')">
+                                <i class="glyphicon glyphicon-star"></i> 取消收藏
+                            </a>
+                        {{end}}
+                        {{if eq $space.is_share "1"}}
+                            <a class="doc-action-btn" name="share" href="/page/display?document_id={{$document.document_id}}" target="_blank">
+                                <i class="glyphicon glyphicon-share-alt"></i> 分享
+                            </a>
+                        {{end}}
+                        {{if eq $space.is_export "1"}}
+                            <div class="dropdown" style="display: inline-block;">
+                                <button type="button" class="doc-action-btn dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" title="导出多格式文档或打印">
+                                    <i class="glyphicon glyphicon-export"></i> 导出 <span class="caret"></span>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-right modern-export-dropdown">
+                                    <li class="dropdown-header"><i class="fa fa-download"></i> 导出本地文件</li>
+                                    <li>
+                                        <a href="/page/export?document_id={{$document.document_id}}&output=md">
+                                            <i class="fa fa-file-text-o text-primary"></i> <strong>Markdown (.md)</strong>
+                                            <span class="export-desc">直接导出原生 Markdown 源文件</span>
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a href="/page/export?document_id={{$document.document_id}}&output=html" target="_blank">
+                                            <i class="fa fa-file-code-o text-success"></i> <strong>离线网页 (.html)</strong>
+                                            <span class="export-desc">独立离线单文件，含完整样式与排版</span>
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a href="/page/export?document_id={{$document.document_id}}&output=zip">
+                                            <i class="fa fa-file-archive-o text-warning"></i> <strong>完整归档包 (.zip)</strong>
+                                            <span class="export-desc">打包 Markdown 原文与全部关联附件</span>
+                                        </a>
+                                    </li>
+                                    <li role="separator" class="divider"></li>
+                                    <li class="dropdown-header"><i class="fa fa-print"></i> 打印与交付</li>
+                                    <li>
+                                        <a href="javascript:void(0)" onclick="window.print()">
+                                            <i class="fa fa-print text-info"></i> <strong>打印 / 另存为 PDF</strong>
+                                            <span class="export-desc">呼起系统打印，排版净化直出 PDF</span>
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+                        {{end}}
                     </div>
-                {{end}}
+                </div>
+
+                <!-- 文档元属性行 -->
+                <div class="view-doc-meta">
+                    <span class="meta-item">
+                        <i class="fa fa-calendar-o"></i>
+                        {{if eq $createUser.user_id $.login_user_id}}
+                            <a href="/system/main/index" target="_parent">{{$createUser.username}}（{{$createUser.given_name}}）</a>
+                        {{else}}
+                            <a href="/user/info?user_id={{$createUser.user_id}}">{{$createUser.username}}（{{$createUser.given_name}}）</a>
+                        {{end}}
+                        创建于 {{dateFormat $document.create_time "Y-m-d H:i"}}
+                    </span>
+                    <span class="meta-divider">·</span>
+                    <span class="meta-item">
+                        <i class="fa fa-clock-o"></i>
+                        {{if eq $editUser.user_id $.login_user_id}}
+                            <a href="/system/main/index" target="_parent">{{$editUser.username}}（{{$editUser.given_name}}）</a>
+                        {{else}}
+                            <a href="/user/info?user_id={{$editUser.user_id}}">{{$editUser.username}}（{{$editUser.given_name}}）</a>
+                        {{end}}
+                        更新于 {{dateFormat $document.update_time "Y-m-d H:i"}}
+                    </span>
+                    <span class="meta-divider">·</span>
+                    <a class="meta-action-link" onclick="Page.history({{$document.document_id}})" title="查看历史版本、对比差异与回滚">
+                        <i class="fa fa-history"></i> 查看历史
+                    </a>
+                    <a class="meta-action-link" onclick="Page.attachment({{$document.document_id}})">
+                        <i class="fa fa-paperclip"></i> 附件
+                    </a>
+                </div>
+            </div>
+
+            <!-- 正文渲染区域 -->
+            <div class="view-doc-content-area">
+                <div id="document_page_view" class="preview-content">
+                    <textarea id="raw_markdown_content" style="display:none;">{{$pageContent}}</textarea>
+                </div>
             </div>
         </div>
 
-        <!-- 文档元属性行 -->
-        <div class="view-doc-meta">
-            <span class="meta-item">
-                <i class="fa fa-calendar-o"></i>
-                {{if eq $createUser.user_id $.login_user_id}}
-                    <a href="/system/main/index" target="_parent">{{$createUser.username}}（{{$createUser.given_name}}）</a>
-                {{else}}
-                    <a href="/user/info?user_id={{$createUser.user_id}}">{{$createUser.username}}（{{$createUser.given_name}}）</a>
-                {{end}}
-                创建于 {{dateFormat $document.create_time "Y-m-d H:i"}}
-            </span>
-            <span class="meta-divider">·</span>
-            <span class="meta-item">
-                <i class="fa fa-clock-o"></i>
-                {{if eq $editUser.user_id $.login_user_id}}
-                    <a href="/system/main/index" target="_parent">{{$editUser.username}}（{{$editUser.given_name}}）</a>
-                {{else}}
-                    <a href="/user/info?user_id={{$editUser.user_id}}">{{$editUser.username}}（{{$editUser.given_name}}）</a>
-                {{end}}
-                更新于 {{dateFormat $document.update_time "Y-m-d H:i"}}
-            </span>
-            <span class="meta-divider">·</span>
-            <a class="meta-action-link" onclick="Page.history({{$document.document_id}})" title="查看历史版本、对比差异与回滚">
-                <i class="fa fa-history"></i> 查看历史
-            </a>
-            <a class="meta-action-link" onclick="Page.attachment({{$document.document_id}})">
-                <i class="fa fa-paperclip"></i> 附件
-            </a>
-        </div>
-    </div>
-
-    <!-- 正文渲染区域 -->
-    <div class="view-doc-content-area">
-        <div id="document_page_view" class="preview-content">
-            <textarea id="raw_markdown_content" style="display:none;">{{$pageContent}}</textarea>
+        <!-- 大屏专属右侧固定吸顶大纲导航 (Sticky Outline) -->
+        <div class="view-doc-sticky-toc-wrapper hidden-xs hidden-sm hidden-md" id="sticky-toc-wrapper" style="display: none;">
+            <div class="view-doc-sticky-toc-inner">
+                <div class="sticky-toc-title">
+                    <i class="fa fa-align-left text-primary"></i> <span>本文大纲</span>
+                </div>
+                <div class="sticky-toc-content" id="sticky-doc-toc"></div>
+            </div>
         </div>
     </div>
 </div>
 
-<!-- 现代悬浮目录按钮（滚动离开顶部时显示） -->
-<button type="button" class="view-toc-floating-btn" id="view-toc-floating-btn">
-    <i class="fa fa-list-ul"></i> 目录
-</button>
+<!-- 现代全端/移动端悬浮动作胶囊组 -->
+<div class="view-floating-action-group">
+    <!-- 回到顶部 -->
+    <button type="button" class="view-floating-btn" id="view-scroll-top-btn" title="回到顶部" style="display: none;">
+        <i class="fa fa-arrow-up"></i>
+    </button>
+    <!-- 悬浮目录大纲按钮 -->
+    <button type="button" class="view-floating-btn" id="view-toc-floating-btn" title="文章大纲目录" style="display: none;">
+        <i class="fa fa-list-ul"></i>
+    </button>
+</div>
 
-<!-- 统一现代目录面板（下拉与悬浮复用） -->
+<!-- 统一现代目录面板（下拉、悬浮与移动端底栏抽屉复用） -->
 <div class="view-toc-panel" id="view-toc-panel">
     <div class="view-toc-header">
         <span><i class="fa fa-list-ul" style="margin-right: 6px;"></i>文档目录</span>
@@ -579,9 +819,18 @@
 <script type="text/javascript">
     Layers.bindIframe("[name='history']", "文档修改历史", "508px", "1000px");
     $("[data-toggle='web-popover']").webuiPopover({animation: 'pop', autoHide: 3000});
-    if (parent.layoutOpen) {
+
+    // 仅在桌面宽屏时展开父页面侧边栏，避免移动端被错误强制分屏挤占
+    if (parent.layoutOpen && $(window).width() > 768) {
         parent.layoutOpen();
     }
+
+    // 移动端呼出父页面空间目录抽屉
+    window.openSpaceTree = function () {
+        if (window.parent && window.parent.toggleMobileDrawer) {
+            window.parent.toggleMobileDrawer(true);
+        }
+    };
 
     $(function() {
         var rawContent = $("#raw_markdown_content").val() || "";
@@ -617,19 +866,48 @@
         if (hasToc) {
             $("#header-toc-btn").show();
 
+            // 为超宽屏 / 大屏克隆并激活右侧固定吸顶大纲
+            $("#sticky-doc-toc").html($("#page-view-dir-toc").html());
+            $("body").addClass("has-sticky-toc");
+            $("#sticky-toc-wrapper").show();
+
             // 监听容器与页面滚动（兼容 body / frame-body 滚动容器）
+            var headings = $("#document_page_view").find("h1, h2, h3, h4, h5, h6");
             var scrollContainer = $(window).add("#frame-body").add(document.body);
             scrollContainer.on("scroll", function() {
                 var st = $("#frame-body").scrollTop() || $(window).scrollTop() || $(document.body).scrollTop() || 0;
+                
+                // 悬浮目录按钮与回到顶部显隐
                 if (st > 140) {
-                    $("#view-toc-floating-btn").fadeIn(150);
+                    if (!$("body").hasClass("has-sticky-toc") || $(window).width() < 1400) {
+                        $("#view-toc-floating-btn").fadeIn(150);
+                    }
                 } else {
                     $("#view-toc-floating-btn").fadeOut(150);
+                }
+
+                if (st > 200) {
+                    $("#view-scroll-top-btn").fadeIn(150);
+                } else {
+                    $("#view-scroll-top-btn").fadeOut(150);
+                }
+
+                // 大屏固定大纲 ScrollSpy 实时高亮当前正在阅读的标题
+                var currentHeadingId = "";
+                headings.each(function() {
+                    var elTop = $(this).position().top;
+                    if (st >= elTop - 70) {
+                        currentHeadingId = $(this).attr("id");
+                    }
+                });
+                if (currentHeadingId) {
+                    $("#sticky-doc-toc a").removeClass("active");
+                    $("#sticky-doc-toc a[href='#" + currentHeadingId + "']").addClass("active");
                 }
             });
         }
 
-        // 打开/关闭目录面板函数
+        // 打开/关闭目录面板函数（桌面浮层 / 移动端 Bottom Sheet）
         function openToc(fromElement, isFixed) {
             var panel = $("#view-toc-panel");
             if (panel.is(":visible")) {
@@ -637,13 +915,16 @@
                 return;
             }
 
-            if (isFixed) {
+            if ($(window).width() <= 768) {
+                // 移动端以 Bottom Sheet 呈现
+                panel.removeAttr("style").fadeIn(150).css("display", "flex");
+            } else if (isFixed) {
                 panel.css({
                     position: "fixed",
                     top: "58px",
                     right: "28px",
                     left: "auto"
-                });
+                }).fadeIn(150).css("display", "flex");
             } else {
                 var offset = fromElement.offset();
                 var btnWidth = fromElement.outerWidth();
@@ -654,9 +935,8 @@
                     top: (offset.top + btnHeight + 8) + "px",
                     right: (docWidth - (offset.left + btnWidth)) + "px",
                     left: "auto"
-                });
+                }).fadeIn(150).css("display", "flex");
             }
-            panel.fadeIn(150).css("display", "flex");
         }
 
         $("#header-toc-btn").on("click", function(e) {
@@ -674,8 +954,15 @@
             $("#view-toc-panel").fadeOut(150);
         });
 
-        // 点击目录链接平滑滚动到对应锚点
-        $("#page-view-dir-toc").on("click", "a", function(e) {
+        // 回到顶部平滑滚动
+        $("#view-scroll-top-btn").on("click", function(e) {
+            e.preventDefault();
+            var scrollCont = $("#frame-body").length ? $("#frame-body") : $("html, body");
+            scrollCont.animate({ scrollTop: 0 }, 220);
+        });
+
+        // 统一处理点击目录链接平滑滚动到对应锚点（浮窗与固定吸顶大纲共享）
+        $("#page-view-dir-toc, #sticky-doc-toc").on("click", "a", function(e) {
             var targetId = $(this).attr("href");
             if (targetId && targetId.startsWith("#")) {
                 var targetEl = $(targetId);

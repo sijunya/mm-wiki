@@ -1,6 +1,16 @@
 <div id="main-left" class="ui-layout-west">
+    {{$spaceDocument := .space_document}}{{$defaultDocumentId := .default_document_id}}{{$space := .space}}
+    <!-- 移动端专属抽屉顶部导航条 -->
+    <div class="mobile-drawer-header">
+        <div class="mobile-drawer-title">
+            <i class="fa fa-cube text-primary"></i>
+            <span>{{$spaceDocument.name}}</span>
+        </div>
+        <button type="button" class="mobile-drawer-close" onclick="window.toggleMobileDrawer(false)" title="关闭侧栏目录">
+            <i class="fa fa-times"></i>
+        </button>
+    </div>
     <div class="left-page">{{$documents := .documents}}
-        {{$spaceDocument := .space_document}}{{$defaultDocumentId := .default_document_id}}{{$space := .space}}
         <div class="page-search">
             <form onsubmit="return false">
                 <div class="form-group has-feedback">
@@ -25,6 +35,11 @@
             <ul id="dir_tree" class="ztree"></ul>
         </div>
     </div>
+</div>
+<!-- 移动端悬浮目录胶囊按钮 -->
+<div id="mobile-tree-fab" class="mobile-tree-fab visible-xs" onclick="window.toggleMobileDrawer(true)" title="展开文档目录">
+    <i class="fa fa-bars"></i>
+    <span>目录</span>
 </div>
 <script type="text/javascript" src="/static/js/modules/document.js"></script>
 <script type="text/javascript">

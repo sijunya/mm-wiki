@@ -80,8 +80,10 @@ var Document = {
 
         function beforeClick(treeId, treeNode) {
             console.log("点击节点前....");
-            // $("#mainFrame").attr("src", "/page/view?document_id="+treeNode.id);
-            location.href = "/document/index?document_id=" + treeNode.id
+            if ($(window).width() <= 768 && window.toggleMobileDrawer) {
+                window.toggleMobileDrawer(false);
+            }
+            location.href = "/document/index?document_id=" + treeNode.id;
         }
 
         function onClick() {
