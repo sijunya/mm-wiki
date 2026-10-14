@@ -7,10 +7,9 @@
                     <span class="icon-bar"></span>
                     <span class="icon-bar"></span>
                 </button>
-                <a class="navbar-brand modern-brand" href="/" title="{{.system_name}}">
-                    <img src="/static/images/logo_icon.png" class="brand-logo-img" alt="logo">
+                <a class="navbar-brand modern-brand" href="/" title="{{if .system_name}}{{.system_name}}{{else}}MM-Wiki{{end}}">
+                    <img src="/static/images/icon_xs.png" class="brand-logo-img" alt="logo">
                     <span class="brand-title">MM-Wiki</span>
-                    {{if .system_name}}<span class="brand-subtext">{{.system_name}}</span>{{end}}
                 </a>
                 <button type="button" class="navbar-toggle modern-nav-toggle" data-toggle="collapse" data-target=".navbar-collapse" aria-label="展开菜单">
                     <i class="glyphicon glyphicon-chevron-down" style="color: #64748b;"></i>
@@ -23,10 +22,10 @@
                     <li {{if eq .navName "user"}}class="active"{{end}}><a href="/user/index"><i class="fa fa-user"></i>&nbsp;用户</a></li>
                     <li {{if eq .navName "system"}}class="active"{{end}}><a href="/system/main/index"><i class="fa fa-cog"></i>&nbsp;系统</a></li>
                 </ul>
-                <form class="navbar-form navbar-left modern-navbar-form visible-md visible-lg" action="#" method="post" onsubmit="return false">
+                <form class="navbar-form navbar-left modern-navbar-form" action="#" method="post" onsubmit="return false">
                     <div class="modern-search-container">
                         <i class="fa fa-search modern-search-icon"></i>
-                        <input class="form-control modern-search-input" name="keyword" type="text" onkeydown="KeyDown('#search_btn')" placeholder="搜索文档或关键字...">
+                        <input class="form-control modern-search-input" name="keyword" type="text" onkeydown="KeyDown('#search_btn')" placeholder="搜索...">
                         <button class="modern-search-btn" type="button" name="search" id="search_btn" onclick="mainSearch(this.form, '/main/search')" title="开始搜索">
                             <i class="fa fa-arrow-right"></i>
                         </button>
