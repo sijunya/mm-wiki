@@ -1,36 +1,32 @@
 <div class="container-fluid">
 <div class="panel panel-default">
     <div class="panel-body">
-        <div class="page-header">
-            <h2>全部用户 <small><span class="badge">{{.count}}</span></small></h2>
-        </div>{{$loginUserId := .login_user_id}}
-        <div class="row">
-            <form action="" method="get">
-                <div class="col-md-9">
-                    <div class="input-group">
-                    </div>
-                </div>{{$username := .username}}
-                <div class="col-md-3">
-                    <div class="input-group">
-                        <input class="form-control" name="username" type="text" value="{{$username}}" placeholder="用户名">
-				            <span class="input-group-btn">
-				              <button type="submit" class="btn btn-primary"><i class="glyphicon glyphicon-search"></i></button>
-				            </span>
-                    </div>
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; padding-bottom: 14px; border-bottom: 1px solid #f1f5f9;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <h3 style="margin: 0; font-size: 18px; font-weight: 700; color: #0f172a;">全部用户</h3>
+                <span class="badge">{{.count}}</span>
+            </div>
+            {{$username := .username}}
+            <form action="" method="get" style="margin: 0;">
+                <div class="input-group" style="width: 240px;">
+                    <input class="form-control" name="username" type="text" value="{{$username}}" placeholder="搜索用户名...">
+                    <span class="input-group-btn">
+                        <button type="submit" class="btn btn-primary"><i class="glyphicon glyphicon-search"></i></button>
+                    </span>
                 </div>
             </form>
-        </div>
-        <br>
+        </div>{{$loginUserId := .login_user_id}}
+
         <table class="table">
             <thead>
             <tr>
                 <td class="w15p text-left"><strong>用户名</strong></td>
                 <td class="text-left"><strong>姓名</strong></td>
                 <td class="text-left"><strong>职位</strong></td>
-                <td class="w17p text-left"><strong>邮箱</strong></td>
-                <td class="w11p text-left"><strong>座机</strong></td>
-                <td class="w11p text-left"><strong>手机</strong></td>
-                <td class="w11p text-left"><strong>IM</strong></td>
+                <td class="w18p text-left"><strong>邮箱</strong></td>
+                <td class="w12p text-left"><strong>座机</strong></td>
+                <td class="w12p text-left"><strong>手机</strong></td>
+                <td class="w10p text-left"><strong>IM</strong></td>
                 <td class="w8p center"><strong>操作</strong></td>
             </tr>
             </thead>
@@ -39,24 +35,33 @@
             <tr class="space-list">
                 <td>
                     {{if eq $user.user_id $loginUserId}}
-                        <strong><a href="/system/main/index" target="_parent">{{$user.username}} <span class="text text-primary"><i class="glyphicon glyphicon-new-window"></i></span> </a></strong>
+                        <a href="/system/main/index" target="_parent" style="font-weight: 600; display: inline-flex; align-items: center; gap: 6px;">
+                            <i class="fa fa-user-circle text-primary"></i>
+                            <span>{{$user.username}}</span>
+                            <span class="text-muted" style="font-size: 11px;"><i class="glyphicon glyphicon-new-window"></i></span>
+                        </a>
                     {{else}}
-                        <strong><a href="/user/info?user_id={{$user.user_id}}">{{$user.username}} <span class="text text-primary"><i class="glyphicon glyphicon-new-window"></i></span> </a></strong>
+                        <a href="/user/info?user_id={{$user.user_id}}" style="font-weight: 600; display: inline-flex; align-items: center; gap: 6px;">
+                            <i class="fa fa-user-circle text-primary"></i>
+                            <span>{{$user.username}}</span>
+                            <span class="text-muted" style="font-size: 11px;"><i class="glyphicon glyphicon-new-window"></i></span>
+                        </a>
                     {{end}}
                 </td>
                 <td>{{$user.given_name}}</td>
                 <td>{{$user.position}}</td>
-                <td>{{$user.email}}</td>
-                <td>{{$user.phone}}</td>
-                <td>{{$user.mobile}}</td>
-                <td>{{$user.im}}</td>
+                <td style="color: #64748b;">{{$user.email}}</td>
+                <td style="color: #64748b;">{{$user.phone}}</td>
+                <td style="color: #64748b;">{{$user.mobile}}</td>
+                <td style="color: #64748b;">{{$user.im}}</td>
                 <td class="center">
                     {{if eq $user.user_id $loginUserId}}
+                    <span class="text-muted">-</span>
                     {{else}}
                     {{if eq $user.follow "1"}}
-                        <a onclick="Common.ajaxSubmit('/follow/cancel?follow_id={{$user.follow_id}}&user_id={{$user.user_id}}')"><i class="glyphicon glyphicon-heart"></i></a>
+                        <a onclick="Common.ajaxSubmit('/follow/cancel?follow_id={{$user.follow_id}}&user_id={{$user.user_id}}')" class="btn btn-default btn-xs" title="取消关注"><i class="glyphicon glyphicon-heart text-danger"></i></a>
                     {{else}}
-                        <a onclick="Common.ajaxSubmit('/follow/add?type=2&object_id={{$user.user_id}}')"><i class="glyphicon glyphicon-heart-empty"></i></a>
+                        <a onclick="Common.ajaxSubmit('/follow/add?type=2&object_id={{$user.user_id}}')" class="btn btn-default btn-xs" title="关注用户"><i class="glyphicon glyphicon-heart-empty"></i></a>
                     {{end}}
                     {{end}}
                 </td>
@@ -65,7 +70,7 @@
             </tbody>
         </table>
     </div>
-    <div class="panel-footer">
+    <div class="panel-footer center">
         {{template "paginator/default.html" .}}
     </div>
 </div>

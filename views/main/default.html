@@ -1,77 +1,108 @@
 <div class="container-fluid">
     <div class="row">
         <div class="col-md-12">
-            <div class="alert alert-info alert-dismissible fade in" role="alert" style="margin-bottom: 10px">
-                <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">×</span></button>
-                <h4><i class="glyphicon glyphicon-volume-up"></i> {{.panel_title}} </h4>
-                <p>{{.panel_description}}</p>
+            <div class="alert alert-info alert-dismissible fade in modern-announcement-card" role="alert" style="margin-bottom: 16px;">
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <h4 class="announcement-title"><i class="fa fa-bullhorn"></i> {{.panel_title}}</h4>
+                <p class="announcement-desc">{{.panel_description}}</p>
             </div>
         </div>{{$logDocuments := .logDocuments}}
         <div class="col-md-7">
             <div class="panel panel-default">
-                <div class="panel-heading"><strong><i class="fa fa-file-word-o"></i>  最近更新文档</strong></div>
+                <div class="panel-heading">
+                    <i class="fa fa-clock-o text-primary"></i> 最近更新文档
+                </div>
                 <div class="panel-body" style="min-height: 550px">
                     <div class="document-update">
                         <ul>
                             {{range $logDocument := $logDocuments}}
                             <li>
-                                <div>
+                                <div class="document-update-title">
                                     {{if eq $logDocument.action "3"}}
                                         {{if eq $logDocument.document_type "1"}}
-                                            <i class="fa fa-file-word-o"></i>
+                                            <i class="fa fa-file-text-o"></i>
                                         {{else}}
-                                            <i class="fa fa-folder-o"></i>
+                                            <i class="fa fa-folder-o text-warning"></i>
                                         {{end}}
-                                        {{$logDocument.document_name}}
+                                        <span>{{$logDocument.document_name}}</span>
                                     {{else}}
-                                    <a href="/document/index?document_id={{$logDocument.document_id}}" target="_parent" class="text text-info text-font-15">
-                                        {{if eq $logDocument.document_type "1"}}
-                                            <i class="fa fa-file-word-o"></i>
-                                        {{else}}
-                                            <i class="fa fa-folder-o"></i>
-                                        {{end}}
-                                         {{$logDocument.document_name}}</a>
+                                        <a href="/document/index?document_id={{$logDocument.document_id}}" target="_parent">
+                                            {{if eq $logDocument.document_type "1"}}
+                                                <i class="fa fa-file-text-o"></i>
+                                            {{else}}
+                                                <i class="fa fa-folder-o text-warning"></i>
+                                            {{end}}
+                                            <span>{{$logDocument.document_name}}</span>
+                                        </a>
                                     {{end}}
                                 </div>
-                                <span class="text text-font-12 document-user-time"><i class="fa fa-calendar"></i> 被
-                                {{if eq $logDocument.user_id $.login_user_id}}
-                                    <a href="/system/main/index" target="_parent">{{$logDocument.username}}（{{$logDocument.given_name}}）<span class="text text-primary"></span> </a>
-                                {{else}}
-                                    <a href="/user/info?user_id={{$logDocument.user_id}}">{{$logDocument.username}}（{{$logDocument.given_name}}）<span class="text text-primary"></span> </a>
-                                {{end}}
-                                {{if eq $logDocument.action "1"}}创建{{else if eq $logDocument.action "2"}}修改{{else if eq $logDocument.action "3"}}删除{{end}}于 {{dateFormat $logDocument.create_time "Y-m-d H:i:s"}}</span>
+                                <div class="document-user-time">
+                                    <i class="fa fa-user-circle-o"></i>
+                                    {{if eq $logDocument.user_id $.login_user_id}}
+                                        <a href="/system/main/index" target="_parent">{{$logDocument.username}}（{{$logDocument.given_name}}）</a>
+                                    {{else}}
+                                        <a href="/user/info?user_id={{$logDocument.user_id}}">{{$logDocument.username}}（{{$logDocument.given_name}}）</a>
+                                    {{end}}
+                                    <span class="label {{if eq $logDocument.action "1"}}label-success{{else if eq $logDocument.action "2"}}label-primary{{else}}label-danger{{end}}" style="margin: 0 4px;">
+                                        {{if eq $logDocument.action "1"}}创建{{else if eq $logDocument.action "2"}}修改{{else if eq $logDocument.action "3"}}删除{{end}}
+                                    </span>
+                                    <span>于 {{dateFormat $logDocument.create_time "Y-m-d H:i:s"}}</span>
+                                </div>
                             </li>
-                            <hr>
                             {{end}}
                         </ul>
                     </div>
-                    <div class="center">
+                    <div class="center" style="margin-top: 16px;">
                     {{template "paginator/default.html" .}}
                     </div>
                 </div>
             </div>
         </div>
         <div class="col-md-5">
-            <div class="panel panel-default" style="min-height: 300px">
-                <div class="panel-heading"><strong><i class="fa fa-internet-explorer"></i> 快捷链接</strong></div>
+            <div class="panel panel-default" style="min-height: 260px; margin-bottom: 16px;">
+                <div class="panel-heading"><i class="fa fa-link text-primary"></i> 快捷链接</div>
                 <div class="panel-body">
                     <div class="row">
                         {{range $link := .links}}
                         <div class="col-md-6 fast-link">
-                            <label> <a href="{{$link.url}}" target="_blank"><i class="fa fa-angle-double-right fa-lg"></i> {{$link.name}} <i class="fa fa-external-link"></i></a></label>
+                            <a href="{{$link.url}}" target="_blank" class="fast-link-card">
+                                <span>{{$link.name}}</span>
+                                <i class="fa fa-external-link"></i>
+                            </a>
+                        </div>
+                        {{end}}
+                        {{if eq (len .links) 0}}
+                        <div class="col-md-12 text-muted center" style="padding: 30px 0;">
+                            <i class="fa fa-link fa-2x" style="color: #cbd5e1; margin-bottom: 8px;"></i>
+                            <p style="margin: 0; font-size: 13px;">暂未配置快捷链接</p>
                         </div>
                         {{end}}
                     </div>
                 </div>
             </div>
         </div>
-        <div class="col-md-5" >
-            <div class="panel panel-default" style="min-height: 300px">
-                <div class="panel-heading"><strong><i class="fa fa-address-book-o"></i> 系统联系人</strong></div>
+        <div class="col-md-5">
+            <div class="panel panel-default" style="min-height: 260px">
+                <div class="panel-heading"><i class="fa fa-address-book-o text-primary"></i> 系统联系人</div>
                 <div class="panel-body">
-                    <ul class="list-group">
+                    <ul class="list-group" style="margin-bottom: 0;">
                         {{range $contact := .contacts}}
-                        <li class="list-group-item">{{$contact.position}}({{$contact.name}})：<i class="glyphicon glyphicon-phone"></i>{{$contact.mobile}} <i class="glyphicon glyphicon-envelope"></i> {{$contact.email}}</li>
+                        <li class="list-group-item" style="border-radius: 6px; border: 1px solid #e2e8f0; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+                            <div>
+                                <strong>{{$contact.name}}</strong>
+                                <span class="label label-default" style="margin-left: 6px;">{{$contact.position}}</span>
+                            </div>
+                            <div class="text-muted" style="font-size: 12px; display: flex; gap: 12px;">
+                                {{if $contact.mobile}}<span><i class="glyphicon glyphicon-phone"></i> {{$contact.mobile}}</span>{{end}}
+                                {{if $contact.email}}<span><i class="glyphicon glyphicon-envelope"></i> {{$contact.email}}</span>{{end}}
+                            </div>
+                        </li>
+                        {{end}}
+                        {{if eq (len .contacts) 0}}
+                        <div class="text-muted center" style="padding: 30px 0;">
+                            <i class="fa fa-address-book-o fa-2x" style="color: #cbd5e1; margin-bottom: 8px;"></i>
+                            <p style="margin: 0; font-size: 13px;">暂未配置系统联系人</p>
+                        </div>
                         {{end}}
                     </ul>
                 </div>

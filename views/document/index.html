@@ -4,20 +4,24 @@
         <div class="page-search">
             <form onsubmit="return false">
                 <div class="form-group has-feedback">
-                    <i class="glyphicon glyphicon-search form-control-feedback" style="line-height: 32px;"></i>
+                    <i class="glyphicon glyphicon-search form-control-feedback"></i>
                     <input class="form-control input-sm" id="document_search" type="text" value=""
-                           placeholder="搜索空间文档..." style="padding-right: 28px;">
+                           placeholder="搜索空间文档..." style="padding-left: 28px;">
                 </div>
             </form>
         </div>
         <div class="page-tree">
-            <h4 class="text-center">
-                <a href="/document/index?document_id={{$spaceDocument.document_id}}">{{$spaceDocument.name}}</a>
-                <a name="create_document"
-                   data-link="/document/add?space_id={{$spaceDocument.space_id}}&parent_id={{$spaceDocument.document_id}}">
-                    <span class="fa fa-plus-square-o"></span>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                <a href="/document/index?document_id={{$spaceDocument.document_id}}" style="font-weight: 700; font-size: 14.5px; color: #0f172a; display: flex; align-items: center; gap: 6px; text-decoration: none;" title="{{$spaceDocument.name}}">
+                    <i class="fa fa-cube text-primary"></i>
+                    <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 150px;">{{$spaceDocument.name}}</span>
                 </a>
-            </h4>
+                <a name="create_document"
+                   data-link="/document/add?space_id={{$spaceDocument.space_id}}&parent_id={{$spaceDocument.document_id}}"
+                   class="btn btn-default btn-xs" style="padding: 2px 7px; height: 26px; font-size: 12px; border-radius: 4px;" title="创建新文档">
+                    <i class="fa fa-plus text-primary"></i> 新建
+                </a>
+            </div>
             <hr>
             <ul id="dir_tree" class="ztree"></ul>
         </div>
@@ -44,6 +48,5 @@
     Layers.bindIframe("[name='create_document']", "创建文档", "345px", "800px");
 </script>
 {{/* markdown显示 */}}
-<iframe class="ui-layout-center" id="mainFrame" name="mainFrame"  width="100%" frameborder="0" scrolling="yes"
+<iframe class="ui-layout-center" id="mainFrame" name="mainFrame" width="100%" frameborder="0" scrolling="yes"
         style="overflow-y: auto" src="/page/view?document_id={{$defaultDocumentId}}"></iframe>
-

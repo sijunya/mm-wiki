@@ -3,21 +3,24 @@
         <div class="collection-search">
             <form action="#" onsubmit="return false">
                 <div class="form-group has-feedback">
-                    <i class="glyphicon glyphicon-search form-control-feedback" style="line-height: 32px;"></i>
-                    <input class="form-control input-sm" id="collect_doc_search" type="text" value="" placeholder="搜索收藏文档..." style="padding-right: 28px;">
+                    <i class="glyphicon glyphicon-search form-control-feedback"></i>
+                    <input class="form-control input-sm" id="collect_doc_search" type="text" value="" placeholder="搜索收藏文档..." style="padding-left: 28px;">
                 </div>
             </form>
         </div>
         <div class="collection-doc">
-            <h3 class="text-left"> 收藏文档 <span class="badge">{{$count}}</span> </h3>
+            <h3 class="text-left"><span><i class="fa fa-star text-warning" style="margin-right: 6px;"></i>收藏文档</span> <span class="badge">{{$count}}</span></h3>
             <hr>
             <ul id="collection_documents">
                 {{range $document := $documents}}
                     {{if eq $document.type "1"}}
-                        <li><a href="/document/index?document_id={{$document.document_id}}"><i class="fa fa-file-word-o"></i> <span>{{$document.name}}</span></a></li>
+                        <li><a href="/document/index?document_id={{$document.document_id}}"><i class="fa fa-file-text-o text-primary"></i> <span>{{$document.name}}</span></a></li>
                     {{else}}
-                        <li><a href="/document/index?document_id={{$document.document_id}}"><i class="fa fa-folder-o"></i> <span>{{$document.name}}</span></a></li>
+                        <li><a href="/document/index?document_id={{$document.document_id}}"><i class="fa fa-folder-o text-warning"></i> <span>{{$document.name}}</span></a></li>
                     {{end}}
+                {{end}}
+                {{if eq (len $documents) 0}}
+                    <li class="text-muted text-center" style="padding: 20px 0; font-size: 13px;">暂无收藏文档</li>
                 {{end}}
             </ul>
         </div>
@@ -28,4 +31,4 @@
         Main.Search("#collect_doc_search");
     })
 </script>
-<iframe class="ui-layout-center" id="mainFrame" name="mainFrame"  width="100%" frameborder="0" scrolling="yes" style="overflow-y: auto" src="/main/default"></iframe>
+<iframe class="ui-layout-center" id="mainFrame" name="mainFrame" width="100%" frameborder="0" scrolling="yes" style="overflow-y: auto" src="/main/default"></iframe>

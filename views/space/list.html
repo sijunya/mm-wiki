@@ -1,68 +1,71 @@
 <div class="container-fluid">
     <div class="panel panel-default">
         <div class="panel-body">
-            <div class="page-header">
-                <h2>全部空间 <small><span class="badge">{{.count}}</span></small></h2>
-            </div>
-            {{if eq .count 0}}
-                <div class="alert alert-info alert-dismissible fade in" role="alert" style="margin-bottom: 0">
-                    <p><i class="glyphicon glyphicon-volume-up"></i> 暂时还没有空间！</p>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; padding-bottom: 14px; border-bottom: 1px solid #f1f5f9;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <h3 style="margin: 0; font-size: 18px; font-weight: 700; color: #0f172a;">全部空间</h3>
+                    <span class="badge">{{.count}}</span>
                 </div>
-            {{else}}
-            <div class="row">
-                <form action="" method="get">
-                    <div class="col-md-9">
-                        <div class="input-group">
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="input-group">
-                            <input class="form-control" name="keyword" type="text" value="{{.keyword}}" placeholder="空间名称/描述">
-                            <span class="input-group-btn">
-				              <button type="submit" class="btn btn-primary"><i class="glyphicon glyphicon-search"></i></button>
-				            </span>
-                        </div>
+                {{if ne .count 0}}
+                <form action="" method="get" style="margin: 0;">
+                    <div class="input-group" style="width: 260px;">
+                        <input class="form-control" name="keyword" type="text" value="{{.keyword}}" placeholder="空间名称 / 描述...">
+                        <span class="input-group-btn">
+                            <button type="submit" class="btn btn-primary"><i class="glyphicon glyphicon-search"></i></button>
+                        </span>
                     </div>
                 </form>
+                {{end}}
             </div>
-            <br>
-            <table class="table" style="margin-bottom: 0">
+
+            {{if eq .count 0}}
+                <div class="alert alert-info" role="alert" style="margin-bottom: 0">
+                    <p><i class="fa fa-info-circle"></i> 暂时还没有空间！</p>
+                </div>
+            {{else}}
+            <table class="table">
                 <thead>
                 <tr>
-                    <td class="w15p text-left"><strong>名称</strong></td>
+                    <td class="w20p text-left"><strong>空间名称</strong></td>
                     <td class="text-left"><strong>描述</strong></td>
                     <td class="w15p text-left"><strong>标签</strong></td>
-                    <td class="w15p center"><strong>访问级别</strong></td>
-                    <td class="w13p center"><strong>创建时间</strong></td>
-                    <td class="w13p center"><strong>操作</strong></td>
+                    <td class="w12p center"><strong>访问级别</strong></td>
+                    <td class="w12p center"><strong>创建时间</strong></td>
+                    <td class="w12p center"><strong>操作</strong></td>
                 </tr>
                 </thead>
                 <tbody>
                 {{range $space := .spaces}}
                 <tr class="space-list">
-                    <td><a href="/space/document?space_id={{$space.space_id}}" target="_parent" title="查看空间文档"><strong>{{$space.name}}</strong> <span class="text text-primary"><i class="glyphicon glyphicon-new-window"></i></span></a></td>
-                    <td>{{$space.description}}</td>
+                    <td>
+                        <a href="/space/document?space_id={{$space.space_id}}" target="_parent" title="查看空间文档" style="font-weight: 600; font-size: 14px; display: inline-flex; align-items: center; gap: 6px;">
+                            <i class="fa fa-cube text-primary"></i>
+                            <span>{{$space.name}}</span>
+                            <span class="text-muted" style="font-size: 11px;"><i class="glyphicon glyphicon-new-window"></i></span>
+                        </a>
+                    </td>
+                    <td style="color: #64748b;">{{$space.description}}</td>
                     <td class="tags-show">{{$space.tags}}</td>
                     <td class="center">
                     {{if eq $space.visit_level "private"}}
-                        <label class="text text-danger">Private</label>
+                        <span class="label label-danger">私有 Private</span>
                     {{else if eq $space.visit_level "internal"}}
-                        <label class="text text-warning">Internal</label>
+                        <span class="label label-warning">内部 Internal</span>
                     {{else}}
-                        <label class="text text-primary">Public</label>
+                        <span class="label label-success">公开 Public</span>
                     {{end}}
                     </td>
-                    <td class="center">
+                    <td class="center text-muted" style="font-size: 13px;">
                     {{dateFormat $space.create_time "Y-m-d"}}
                     </td>
                     <td class="center">
                         <div class="btn-group btn-group-sm" role="group">
                         {{if eq $space.collection "1"}}
-                            <a name="collection_space" onclick="Common.ajaxSubmit('/collection/cancel?collection_id={{$space.collection_id}}')" type="button" class="btn btn-default"><i class="glyphicon glyphicon-star"> </i></a>
+                            <a name="collection_space" onclick="Common.ajaxSubmit('/collection/cancel?collection_id={{$space.collection_id}}')" type="button" class="btn btn-default" title="取消收藏"><i class="glyphicon glyphicon-star text-warning"></i></a>
                         {{else}}
-                            <a name="collection_space" onclick="Common.ajaxSubmit('/collection/add?type=2&resource_id={{$space.space_id}}')" type="button" class="btn btn-default"><i class="glyphicon glyphicon-star-empty"> </i></a>
+                            <a name="collection_space" onclick="Common.ajaxSubmit('/collection/add?type=2&resource_id={{$space.space_id}}')" type="button" class="btn btn-default" title="收藏空间"><i class="glyphicon glyphicon-star-empty"></i></a>
                         {{end}}
-                            <a name="user" data-link="/space/member?space_id={{$space.space_id}}" type="button" class="btn btn-default"><i class="fa fa-group"></i></a>
+                            <a name="user" data-link="/space/member?space_id={{$space.space_id}}" type="button" class="btn btn-default" title="空间成员"><i class="fa fa-group"></i></a>
                         </div>
                     </td>
                 </tr>
@@ -71,7 +74,7 @@
             </table>
             {{end}}
         </div>
-        <div class="panel-footer">
+        <div class="panel-footer center">
         {{template "paginator/default.html" .}}
         </div>
     </div>
@@ -84,7 +87,7 @@
                 var html = "";
                 var tagList = tags.split(",");
                 for (var i = 0; i < tagList.length; i++) {
-                    html += "<span class='label label-default'>"+tagList[i]+"</span> ";
+                    html += "<span class='label label-default' style='margin-right: 4px;'>"+tagList[i]+"</span>";
                 }
                 $(this).html(html);
             }

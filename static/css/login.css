@@ -1,447 +1,337 @@
 @charset "utf-8";
-/* CSS Document */
+/**
+ * Modern MM-Wiki Login Stylesheet
+ */
 
 * {
-    font: 13px/1.5 '微软雅黑';
-    -webkit-box-sizing: border-box;
-    -moz-box-sizing: border-box;
-    padding: 0;
-    margin: 0;
-    list-style: none;
     box-sizing: border-box;
+    margin: 0;
+    padding: 0;
 }
 
 body, html {
     height: 100%;
     width: 100%;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    background-color: #f8fafc;
+    background-image: 
+        radial-gradient(at 0% 0%, rgba(37, 99, 235, 0.06) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(59, 130, 246, 0.04) 0px, transparent 50%);
     display: flex;
+    align-items: center;
     justify-content: center;
-    align-items: flex-start;
-    background-color: #F5F5F5;
+    color: #1e293b;
+    -webkit-font-smoothing: antialiased;
 }
 
-a {
-    color: #31708f;
-    text-decoration: none;
-    cursor: pointer;
-}
-
-img {
-    border: none;
-}
-
-.login_box {
-    display: flex;
-    height: 90rem;
+.login-wrapper {
     width: 100%;
-    max-width: 100rem;
-    max-height: 90rem;
-    flex-wrap: wrap;
-    justify-content: space-around;
-    align-content: space-around;
-}
-
-.login_box .login_l_img {
-    padding-top: 1rem;
-    text-align: center;
-    margin: 0 10px;
+    max-width: 1020px;
+    padding: 30px 20px;
     display: flex;
     flex-direction: column;
+    align-items: center;
 }
 
-.login_box .login_l_img img {
-    margin-top: 10px;
-    max-width: 420px;
+.login-container {
     width: 100%;
+    display: flex;
+    align-items: stretch;
+    background: #ffffff;
+    border-radius: 16px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.02);
+    overflow: hidden;
+    min-height: 520px;
 }
 
-.login_box .login_l_img span {
-    text-align: center;
-    font-size: 20px;
-    font-family: "Arial", "Microsoft YaHei", "黑体", "宋体", sans-serif;
-    color: #1E1E33;
-    font-weight: 700;
-    margin-left: 32px;
-}
-
-.login {
-    height: 360px;
-    width: 100%;
-    min-width: 28rem;
-    max-width: 40rem;
-    padding: 40px 40px 10px 40px;
-    background-color: #ffffff;
-    border-radius: 6px;
-    box-sizing: border-box;
-    position: relative;
-    margin: 0 10px;
-    box-shadow: 0 14px 28px rgba(0, 0, 0, 0.25), 0 10px 10px rgba(0, 0, 0, 0.22);
-}
-
-.login_logo {
-    width: 120px;
-    height: 120px;
-    border: 5px solid #93defe;
-    border-radius: 100px;
-    background: #fff;
-    text-align: center;
-    line-height: 110px;
-    position: absolute;
-    top: -60px;
-    right: 140px;
-}
-
-.login_name {
-    width: 100%;
-    float: left;
-    text-align: center;
-    margin-top: 20px;
-}
-
-.login_name p {
-    width: 100%;
-    text-align: center;
-    font-size: 18px;
-    color: #444;
-    padding: 10px 0 20px;
-}
-
-.login_logo img {
-    width: 60px;
-    height: 60px;
-    display: inline-block;
-    vertical-align: middle;
-}
-
-input[type=text], input[type=file], input[type=password], input[type=email], select {
-    border: 1px solid #DCDEE0;
-    vertical-align: middle;
-    border-radius: 3px;
-    /*height: 50px;*/
-    height: 40px;
-    padding: 0 16px;
-    font-size: 14px;
-    color: #555555;
-    outline: none;
-    width: 100%;
-    margin-bottom: 15px;
-    line-height: 50px;
-}
-
-input[type=text]:focus, input[type=file]:focus, input[type=password]:focus, input[type=email]:focus, select:focus {
-    border: 1px solid #31708f;
-}
-
-input[type=submit], input[type=button] {
-    display: inline-block;
-    vertical-align: middle;
-    padding: 12px 24px;
-    margin: 0;
-    font-size: 16px;
-    line-height: 24px;
-    text-align: center;
-    white-space: nowrap;
-    cursor: pointer;
+/* Left Hero Brand Panel */
+.login-hero-panel {
+    flex: 1.1;
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    padding: 48px 44px;
     color: #ffffff;
-    background-color: #337ab7;
-    border-radius: 3px;
-    border: none;
-    -webkit-appearance: none;
-    outline: none;
-    width: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    position: relative;
+    overflow: hidden;
 }
 
-.copyright {
+.login-hero-panel::after {
+    content: "";
+    position: absolute;
+    width: 320px;
+    height: 320px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(37, 99, 235, 0.25) 0%, transparent 70%);
+    top: -60px;
+    right: -60px;
+    pointer-events: none;
+}
+
+.hero-brand-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.hero-logo-img {
+    height: 34px;
+    width: auto;
+}
+
+.hero-brand-name {
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: #ffffff;
+}
+
+.hero-tagline-box {
+    margin: 40px 0;
+}
+
+.hero-tagline-title {
+    font-size: 26px;
+    font-weight: 700;
+    line-height: 1.35;
+    color: #f8fafc;
+    margin-bottom: 14px;
+    letter-spacing: -0.02em;
+}
+
+.hero-tagline-desc {
     font-size: 14px;
-    color: gray;
-    display: block;
-    width: 100%;
-    float: left;
-    text-align: center;
-    margin-top: 2rem;
+    line-height: 1.6;
+    color: #94a3b8;
 }
 
-#password_text {
-    border: 1px solid #DCDEE0;
-    vertical-align: middle;
-    border-radius: 3px;
-    height: 50px;
-    padding: 0 16px;
-    font-size: 14px;
-    color: #888;
-    outline: none;
-    width: 100%;
-    margin-bottom: 15px;
-    display: block;
-    line-height: 50px;
+.hero-feature-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    list-style: none;
 }
 
+.hero-feature-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13.5px;
+    color: #cbd5e1;
+}
+
+.hero-feature-item i {
+    color: #38bdf8;
+    font-size: 15px;
+}
+
+/* Right Login Form Panel */
+.login-form-panel {
+    flex: 1;
+    padding: 48px 44px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    background: #ffffff;
+}
+
+.login-form-header {
+    margin-bottom: 24px;
+}
+
+.login-form-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: #0f172a;
+    letter-spacing: -0.01em;
+    margin-bottom: 6px;
+}
+
+.login-form-subtitle {
+    font-size: 13.5px;
+    color: #64748b;
+}
+
+/* Segmented Control Tabs */
 .tabs input[name="tab-control"] {
     display: none;
 }
 
-.tabs .content section h2, .tabs ul li label {
-    font-weight: bold;
-    font-size: 18px;
-    color: #428BFF;
-}
-
-.tabs ul li label span {
-    font-size: 18px;
-    font-weight: 600;
-}
-
-.tabs ul {
-    list-style-type: none;
-    padding-left: 0;
-    display: -webkit-box;
-    display: -webkit-flex;
-    display: -ms-flexbox;
+.tabs-nav {
     display: flex;
-    -webkit-box-orient: horizontal;
-    -webkit-box-direction: normal;
-    -webkit-flex-direction: row;
-    -ms-flex-direction: row;
-    flex-direction: row;
-    /*margin-bottom: 10px;*/
-    margin-bottom: 0;
-    -webkit-box-pack: justify;
-    -webkit-justify-content: space-between;
-    -ms-flex-pack: justify;
-    justify-content: space-between;
-    -webkit-box-align: end;
-    -webkit-align-items: flex-end;
-    -ms-flex-align: end;
-    align-items: flex-end;
-    -webkit-flex-wrap: wrap;
-    -ms-flex-wrap: wrap;
-    flex-wrap: wrap;
+    background-color: #f1f5f9;
+    padding: 4px;
+    border-radius: 8px;
+    list-style: none;
+    margin-bottom: 24px;
 }
 
-.tabs ul li {
-    box-sizing: border-box;
-    -webkit-box-flex: 1;
-    -webkit-flex: 1;
-    -ms-flex: 1;
+.tabs-nav li {
     flex: 1;
-    width: 25%;
-    padding: 0 10px;
     text-align: center;
 }
 
-.tabs ul li label {
-    transition: all 0.3s ease-in-out;
-    color: #929daf;
-    padding: 5px 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
+.tabs-nav li label {
     display: block;
+    padding: 8px 12px;
+    font-size: 13.5px;
+    font-weight: 500;
+    color: #64748b;
+    border-radius: 6px;
     cursor: pointer;
-    -webkit-transition: all 0.2s ease-in-out;
-    white-space: nowrap;
-    -webkit-touch-callout: none;
-    -webkit-user-select: none;
-    -moz-user-select: none;
-    -ms-user-select: none;
+    transition: all 0.15s ease;
     user-select: none;
+    margin: 0;
 }
 
-.tabs ul li label br {
-    display: none;
+.tabs-nav li label:hover {
+    color: #0f172a;
 }
 
-.tabs ul li label svg {
-    fill: #929daf;
-    height: 1.2em;
-    vertical-align: bottom;
-    margin-right: 0.2em;
-    -webkit-transition: all 0.2s ease-in-out;
-    transition: all 0.2s ease-in-out;
-}
-
-.tabs ul li label:hover, .tabs ul li label:focus, .tabs ul li label:active {
-    outline: 0;
-    color: #bec5cf;
-}
-
-.tabs ul li label:hover svg, .tabs ul li label:focus svg, .tabs ul li label:active svg {
-    fill: #bec5cf;
+/* Active Tab Styles */
+.tabs input[name="tab-control"]:nth-of-type(1):checked ~ .tabs-nav > li:nth-child(1) > label,
+.tabs input[name="tab-control"]:nth-of-type(2):checked ~ .tabs-nav > li:nth-child(2) > label {
+    background-color: #ffffff;
+    color: #2563eb;
+    font-weight: 600;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
 .tabs .slider {
-    position: relative;
-    /*width: 25%;*/
-    width: 50%;
-    -webkit-transition: all 0.33s cubic-bezier(0.38, 0.8, 0.32, 1.07);
-    transition: all 0.33s cubic-bezier(0.38, 0.8, 0.32, 1.07);
-}
-
-.tabs .slider .indicator {
-    position: relative;
-    width: 80px;
-    max-width: 100%;
-    margin: 0 auto;
-    height: 4px;
-    background: #428BFF;
-    border-radius: 1px;
-}
-
-.tabs .content {
-    margin-top: 30px;
-}
-
-.tabs .content section {
-    display: none;
-    -webkit-animation-name: content;
-    animation-name: content;
-    -webkit-animation-direction: normal;
-    animation-direction: normal;
-    -webkit-animation-duration: 0.3s;
-    animation-duration: 0.3s;
-    -webkit-animation-timing-function: ease-in-out;
-    animation-timing-function: ease-in-out;
-    -webkit-animation-iteration-count: 1;
-    animation-iteration-count: 1;
-    line-height: 1.4;
-}
-
-.tabs .content section h2 {
-    color: #428BFF;
     display: none;
 }
 
-.tabs .content section h2::after {
-    content: "";
+/* Content Sections */
+.tabs-content section {
+    display: none;
+    animation: fadeIn 0.2s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.tabs input[name="tab-control"]:nth-of-type(1):checked ~ .tabs-content > section:nth-child(1) {
+    display: block;
+}
+
+.tabs input[name="tab-control"]:nth-of-type(2):checked ~ .tabs-content > section:nth-child(2) {
+    display: block;
+}
+
+/* Input Fields */
+.modern-input-group {
     position: relative;
-    display: block;
-    width: 30px;
-    height: 3px;
-    background: #428BFF;
-    margin-top: 5px;
-    left: 1px;
+    margin-bottom: 18px;
 }
 
-.tabs input[name="tab-control"]:nth-of-type(1):checked ~ ul > li:nth-child(1) > label {
-    cursor: default;
-    color: #428BFF;
+.modern-input-icon {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #94a3b8;
+    font-size: 14px;
+    pointer-events: none;
+    z-index: 2;
 }
 
-.tabs input[name="tab-control"]:nth-of-type(1):checked ~ ul > li:nth-child(1) > label svg {
-    fill: #428BFF;
+.modern-login-input {
+    width: 100%;
+    height: 42px;
+    padding: 8px 14px 8px 40px;
+    font-size: 14px;
+    color: #1e293b;
+    background-color: #ffffff;
+    border: 1px solid #d0d7de;
+    border-radius: 8px;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.02);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    box-sizing: border-box;
 }
 
-.tabs input[name="tab-control"]:nth-of-type(1):checked ~ .slider {
-    -webkit-transform: translateX(0%);
-    transform: translateX(0%);
+.modern-login-input:focus {
+    border-color: #2563eb;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
 }
 
-.tabs input[name="tab-control"]:nth-of-type(1):checked ~ .content > section:nth-child(1) {
-    display: block;
+.modern-login-input:disabled {
+    background-color: #f1f5f9;
+    color: #94a3b8;
+    cursor: not-allowed;
 }
 
-.tabs input[name="tab-control"]:nth-of-type(2):checked ~ ul > li:nth-child(2) > label {
-    cursor: default;
-    color: #428BFF;
+/* Submit Button */
+.modern-login-btn {
+    width: 100%;
+    height: 42px;
+    padding: 0;
+    margin-top: 6px;
+    font-size: 14.5px;
+    font-weight: 600;
+    color: #ffffff;
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    border: none;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(37, 99, 235, 0.25);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
 }
 
-.tabs input[name="tab-control"]:nth-of-type(2):checked ~ ul > li:nth-child(2) > label svg {
-    fill: #428BFF;
+.modern-login-btn:hover {
+    background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+    box-shadow: 0 4px 6px rgba(37, 99, 235, 0.35);
+    transform: translateY(-1px);
 }
 
-.tabs input[name="tab-control"]:nth-of-type(2):checked ~ .slider {
-    -webkit-transform: translateX(100%);
-    transform: translateX(100%);
+.modern-login-btn:active {
+    transform: translateY(0);
 }
 
-.tabs input[name="tab-control"]:nth-of-type(2):checked ~ .content > section:nth-child(2) {
-    display: block;
+.modern-login-btn:disabled {
+    background: #cbd5e1;
+    box-shadow: none;
+    cursor: not-allowed;
 }
 
-.tabs input[name="tab-control"]:nth-of-type(3):checked ~ ul > li:nth-child(3) > label {
-    cursor: default;
-    color: #428BFF;
+/* Copyright Footer */
+.login-copyright {
+    margin-top: 24px;
+    font-size: 13px;
+    color: #64748b;
+    text-align: center;
 }
 
-.tabs input[name="tab-control"]:nth-of-type(3):checked ~ ul > li:nth-child(3) > label svg {
-    fill: #428BFF;
+.login-copyright a {
+    color: #64748b;
+    text-decoration: none;
+    transition: color 0.15s ease;
 }
 
-@media (max-width: 600px) {
+.login-copyright a:hover {
+    color: #2563eb;
+}
 
-    .tabs input[name="tab-control"]:nth-of-type(3):checked ~ ul > li:nth-child(3) > label {
-        background: rgba(0, 0, 0, 0.08);
+/* Responsive */
+@media (max-width: 768px) {
+    .login-container {
+        flex-direction: column;
     }
-}
-
-.tabs input[name="tab-control"]:nth-of-type(3):checked ~ .slider {
-    -webkit-transform: translateX(200%);
-    transform: translateX(200%);
-}
-
-.tabs input[name="tab-control"]:nth-of-type(3):checked ~ .content > section:nth-child(3) {
-    display: block;
-}
-
-.tabs input[name="tab-control"]:nth-of-type(4):checked ~ ul > li:nth-child(4) > label {
-    cursor: default;
-    color: #428BFF;
-}
-
-.tabs input[name="tab-control"]:nth-of-type(4):checked ~ ul > li:nth-child(4) > label svg {
-    fill: #428BFF;
-}
-
-@media (max-width: 600px) {
-
-    .tabs input[name="tab-control"]:nth-of-type(4):checked ~ ul > li:nth-child(4) > label {
-        background: rgba(0, 0, 0, 0.08);
+    .login-hero-panel {
+        padding: 32px 24px;
     }
-}
-
-.tabs input[name="tab-control"]:nth-of-type(4):checked ~ .slider {
-    -webkit-transform: translateX(300%);
-    transform: translateX(300%);
-}
-
-.tabs input[name="tab-control"]:nth-of-type(4):checked ~ .content > section:nth-child(4) {
-    display: block;
-}
-
-@-webkit-keyframes content {
-    from {
-        opacity: 0;
-        -webkit-transform: translateY(5%);
-        transform: translateY(5%);
+    .login-form-panel {
+        padding: 32px 24px;
     }
-
-    to {
-        opacity: 1;
-        -webkit-transform: translateY(0%);
-        transform: translateY(0%);
-    }
-}
-
-@keyframes content {
-    from {
-        opacity: 0;
-        -webkit-transform: translateY(5%);
-        transform: translateY(5%);
-    }
-
-    to {
-        opacity: 1;
-        -webkit-transform: translateY(0%);
-        transform: translateY(0%);
-    }
-}
-
-/*宽屏模式*/
-@media (min-width: 860px) {
-    body {
-        align-items: center;
-    }
-
-    .login_box {
-        max-height: 49rem;
+    .hero-tagline-box {
+        margin: 20px 0;
     }
 }
