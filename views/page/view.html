@@ -1006,5 +1006,28 @@
             localStorage.setItem("mmwiki_view_width_mode", nextMode);
             applyWidthMode(nextMode);
         });
+
+        // 同步当前加载的文档状态到父级页面标题与左侧目录高亮
+        try {
+            if (window.parent && window.parent !== window && window.parent.syncActiveDocument) {
+                window.parent.syncActiveDocument({{$document.document_id}}, {{$document.name}});
+            }
+        } catch (e) {}
+
+        // 内部文档链接无刷新极速切换拦截（面包屑、正文关联文档链接）
+        $(document).on("click", "a", function (e) {
+            var href = $(this).attr("href");
+            if (!href) return;
+            var match = href.match(/(?:\/document\/index|\/page\/view)\?document_id=(\d+)/);
+            if (match && match[1]) {
+                try {
+                    if (window.parent && window.parent !== window && window.parent.switchDocument) {
+                        e.preventDefault();
+                        window.parent.switchDocument(parseInt(match[1]), $(this).text().trim(), true);
+                        return false;
+                    }
+                } catch (err) {}
+            }
+        });
     });
 </script>

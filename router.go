@@ -16,6 +16,7 @@ func init() {
 
 func initRouter() {
 	// router
+	beego.BConfig.EnableGzip = true
 	beego.BConfig.WebConfig.AutoRender = false
 	beego.BConfig.RouterCaseSensitive = false
 

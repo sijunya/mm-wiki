@@ -78,12 +78,68 @@ var Document = {
             setting.edit.showRemoveBtn = false;
         }
 
-        function beforeClick(treeId, treeNode) {
-            console.log("点击节点前....");
+        function switchDocument(docId, docName, pushHistory) {
+            if (!docId) return;
+
+            // 1. 更新浏览器历史记录与地址栏
+            if (pushHistory !== false) {
+                var newUrl = "/document/index?document_id=" + docId;
+                if (location.pathname + location.search !== newUrl) {
+                    history.pushState({ document_id: docId, name: docName }, "", newUrl);
+                }
+            }
+
+            // 2. 更新网页标题
+            if (docName) {
+                document.title = docName + " - MM-Wiki";
+            }
+
+            // 3. 联动 zTree 侧边栏选中高亮
+            var zTreeMenu = $.fn.zTree.getZTreeObj("dir_tree");
+            if (zTreeMenu) {
+                var node = zTreeMenu.getNodeByParam("id", docId);
+                if (node) {
+                    zTreeMenu.selectNode(node, false);
+                    zTreeMenu.expandNode(node, true, false, false);
+                    if (!docName && node.name) {
+                        document.title = node.name + " - MM-Wiki";
+                    }
+                }
+            }
+
+            // 4. 极速切换 iframe 视窗（平滑过渡，无整页白屏）
+            var frame = document.getElementById("mainFrame");
+            if (frame) {
+                frame.style.opacity = "0.75";
+                frame.onload = function () {
+                    frame.style.opacity = "1";
+                };
+                frame.src = "/page/view?document_id=" + docId;
+            }
+
+            // 5. 移动端收起抽屉
             if ($(window).width() <= 768 && window.toggleMobileDrawer) {
                 window.toggleMobileDrawer(false);
             }
-            location.href = "/document/index?document_id=" + treeNode.id;
+        }
+
+        window.switchDocument = switchDocument;
+        window.syncActiveDocument = function (docId, docName) {
+            if (docName) {
+                document.title = docName + " - MM-Wiki";
+            }
+            var zTreeMenu = $.fn.zTree.getZTreeObj("dir_tree");
+            if (zTreeMenu) {
+                var node = zTreeMenu.getNodeByParam("id", docId);
+                if (node) {
+                    zTreeMenu.selectNode(node, false);
+                }
+            }
+        };
+
+        function beforeClick(treeId, treeNode) {
+            switchDocument(treeNode.id, treeNode.name, true);
+            return false;
         }
 
         function onClick() {
@@ -284,7 +340,7 @@ var Document = {
 
             $("#ctx-view").off("click").on("click", function () {
                 hideContextMenu();
-                location.href = "/document/index?document_id=" + treeNode.id;
+                switchDocument(treeNode.id, treeNode.name, true);
             });
 
             if (isEditor) {
@@ -399,6 +455,22 @@ var Document = {
             zTreeMenu.expandNode(node, true, false);
             //initialize fuzzysearch function
             fuzzySearch("dir_tree", '#document_search', null, true);
+
+            // 监听浏览器前进/后退导航，无刷新即时切换
+            window.addEventListener("popstate", function (e) {
+                var docId = null;
+                if (e.state && e.state.document_id) {
+                    docId = e.state.document_id;
+                } else {
+                    var match = location.search.match(/document_id=(\d+)/);
+                    if (match && match[1]) {
+                        docId = parseInt(match[1]);
+                    }
+                }
+                if (docId) {
+                    switchDocument(docId, null, false);
+                }
+            });
         });
     }
 };
