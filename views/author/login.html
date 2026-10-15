@@ -50,18 +50,20 @@
                     </li>
                 </ul>
 
+                <div id="login-error-alert" class="alert alert-danger" style="display:none; margin: 12px 0; padding: 10px 14px; border-radius: 8px; font-size: 13.5px; line-height: 1.5; color: #b91c1c; background-color: #fef2f2; border: 1px solid #fecaca;"></div>
+
                 <div class="tabs-content">
                     <!-- 普通登录 -->
                     <section>
-                        <form role="form" action="/author/login" method="post" onsubmit="return false">
+                        <form role="form" action="/author/login" method="post" onsubmit="Login.ajaxSubmit(this); return false;">
                             <fieldset>
                                 <div class="modern-input-group">
                                     <i class="glyphicon glyphicon-user modern-input-icon"></i>
-                                    <input type="text" name="username" class="modern-login-input" placeholder="请输入系统用户名" autocomplete="new-username" onkeydown="KeyDown('#default_login')">
+                                    <input type="text" name="username" class="modern-login-input" placeholder="请输入系统用户名" autocomplete="new-username" onkeydown="KeyDown(event, '#default_login')">
                                 </div>
                                 <div class="modern-input-group">
                                     <i class="glyphicon glyphicon-lock modern-input-icon"></i>
-                                    <input type="password" name="password" class="modern-login-input" placeholder="请输入密码" autocomplete="new-password" onkeydown="KeyDown('#default_login')">
+                                    <input type="password" name="password" class="modern-login-input" placeholder="请输入密码" autocomplete="new-password" onkeydown="KeyDown(event, '#default_login')">
                                 </div>
                                 <button id="default_login" name="submit" type="button" class="modern-login-btn" onclick="Login.ajaxSubmit(this.form)">
                                     <i class="fa fa-sign-in"></i> 登 录
@@ -72,15 +74,15 @@
 
                     <!-- 统一登录 -->
                     <section>
-                        <form role="form" action="/author/authLogin" method="post" onsubmit="return false">
+                        <form role="form" action="/author/authLogin" method="post" onsubmit="Login.ajaxSubmit(this); return false;">
                             <fieldset>
                                 <div class="modern-input-group">
                                     <i class="glyphicon glyphicon-user modern-input-icon"></i>
-                                    <input type="text" name="username" class="modern-login-input" placeholder="请输入统一登录用户名" {{if ne .sso_open "1"}} disabled="disabled" {{end}} onkeydown="KeyDown('#auth_login')" autocomplete="new-username">
+                                    <input type="text" name="username" class="modern-login-input" placeholder="请输入统一登录用户名" {{if ne .sso_open "1"}} disabled="disabled" {{end}} onkeydown="KeyDown(event, '#auth_login')" autocomplete="new-username">
                                 </div>
                                 <div class="modern-input-group">
                                     <i class="glyphicon glyphicon-lock modern-input-icon"></i>
-                                    <input type="password" name="password" class="modern-login-input" placeholder="请输入统一登录密码" {{if ne .sso_open "1"}} disabled="disabled" {{end}} onkeydown="KeyDown('#auth_login')" autocomplete="new-password">
+                                    <input type="password" name="password" class="modern-login-input" placeholder="请输入统一登录密码" {{if ne .sso_open "1"}} disabled="disabled" {{end}} onkeydown="KeyDown(event, '#auth_login')" autocomplete="new-password">
                                 </div>
                                 <button id="auth_login" name="submit" type="button" class="modern-login-btn" {{if eq .sso_open "1"}} onclick="Login.ajaxSubmit(this.form)" {{else}} disabled="disabled" {{end}}>
                                     <i class="fa fa-sign-in"></i> 登 录
@@ -102,10 +104,11 @@
     if (self != top) {
         parent.location.href = "/"
     }
-    function KeyDown(element) {
-        if (event.keyCode == 13) {
-            event.returnValue = false;
-            event.cancel = true;
+    function KeyDown(e, element) {
+        var evt = e || window.event;
+        if (evt && (evt.keyCode == 13 || evt.which == 13)) {
+            if (evt.preventDefault) evt.preventDefault();
+            evt.returnValue = false;
             $(element).click();
         }
     }
