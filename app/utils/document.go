@@ -414,15 +414,168 @@ func (d *document) GenerateStandaloneHTML(title string, spaceName string, author
             background-color: #f3f4f6;
             border-color: #8c959f;
         }
+        .wiki-layout-wrapper {
+            width: 100%;
+            min-height: calc(100vh - 54px);
+            padding: 0 20px;
+            box-sizing: border-box;
+        }
+        .wiki-layout-flex {
+            max-width: 1280px;
+            margin: 0 auto;
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            gap: 32px;
+            position: relative;
+        }
         .wiki-container {
             max-width: 960px;
-            margin: 32px auto 80px auto;
+            flex: 1;
+            min-width: 0;
+            margin: 32px 0 80px 0;
             background: #ffffff;
             border: 1px solid #d0d7de;
             border-radius: 10px;
             padding: 48px 56px;
             box-shadow: 0 4px 16px rgba(0,0,0,0.04);
             box-sizing: border-box;
+        }
+        .wiki-sticky-toc {
+            width: 250px;
+            flex-shrink: 0;
+            position: sticky;
+            top: 72px;
+            max-height: calc(100vh - 96px);
+            overflow-y: auto;
+            padding-left: 18px;
+            border-left: 1px solid #e1e4e8;
+            margin-top: 32px;
+            box-sizing: border-box;
+        }
+        @media (max-width: 1250px) {
+            .wiki-sticky-toc {
+                display: none !important;
+            }
+        }
+        .wiki-toc-title {
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #94a3b8;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .wiki-toc-nav ul {
+            list-style: none;
+            padding-left: 12px;
+            margin: 0;
+        }
+        .wiki-toc-nav > ul {
+            padding-left: 0;
+        }
+        .wiki-toc-nav li {
+            margin: 5px 0;
+            font-size: 13px;
+            line-height: 1.4;
+        }
+        .wiki-toc-nav li.toc-level-1 { font-weight: 600; }
+        .wiki-toc-nav li.toc-level-2 { padding-left: 8px; }
+        .wiki-toc-nav li.toc-level-3 { padding-left: 16px; font-size: 12.5px; }
+        .wiki-toc-nav li.toc-level-4 { padding-left: 24px; font-size: 12px; }
+        .wiki-toc-nav a {
+            color: #64748b;
+            text-decoration: none;
+            display: block;
+            padding: 3px 6px;
+            border-radius: 4px;
+            transition: all 0.15s ease;
+            word-break: break-word;
+        }
+        .wiki-toc-nav a:hover {
+            color: #0969da;
+            background-color: #f3f4f6;
+        }
+        .wiki-toc-nav a.active {
+            color: #0969da;
+            font-weight: 600;
+            background-color: #ddf4ff;
+        }
+        /* 移动端 / 窄屏大纲弹窗与悬浮按钮 */
+        .wiki-floating-toc-btn {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: #ffffff;
+            border: 1px solid #d0d7de;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.12);
+            cursor: pointer;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .wiki-floating-toc-btn:hover {
+            background: #0969da;
+            color: #fff;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 18px rgba(9, 105, 218, 0.35);
+        }
+        .wiki-toc-drawer {
+            display: none;
+            position: fixed;
+            top: 56px;
+            right: 20px;
+            width: 290px;
+            max-height: calc(100vh - 80px);
+            background: #ffffff;
+            border: 1px solid #d0d7de;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            z-index: 2000;
+            flex-direction: column;
+            overflow: hidden;
+            animation: tocFadeIn 0.18s ease;
+        }
+        @keyframes tocFadeIn {
+            from { opacity: 0; transform: translateY(-6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .wiki-toc-drawer-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            background: #f6f8fa;
+            border-bottom: 1px solid #d0d7de;
+            font-size: 13px;
+            font-weight: 600;
+            color: #24292e;
+        }
+        .wiki-toc-drawer-close {
+            border: none;
+            background: transparent;
+            font-size: 20px;
+            line-height: 1;
+            cursor: pointer;
+            color: #656d76;
+            padding: 0;
+        }
+        .wiki-toc-drawer-close:hover {
+            color: #1f2328;
+        }
+        .wiki-toc-drawer-body {
+            padding: 12px 16px 20px 16px;
+            overflow-y: auto;
+            flex: 1;
         }
         .wiki-header {
             border-bottom: 1px solid #d8dee4;
@@ -460,6 +613,7 @@ func (d *document) GenerateStandaloneHTML(title string, spaceName string, author
             font-weight: 600;
             line-height: 1.35;
             color: #1f2328;
+            scroll-margin-top: 70px;
         }
         .markdown-body h1 { font-size: 24px; padding-bottom: 8px; border-bottom: 1px solid #d8dee4; }
         .markdown-body h2 { font-size: 20px; padding-bottom: 6px; border-bottom: 1px solid #d8dee4; }
@@ -541,11 +695,27 @@ func (d *document) GenerateStandaloneHTML(title string, spaceName string, author
             text-align: center;
         }
         @media (max-width: 768px) {
+            .wiki-layout-wrapper {
+                padding: 0;
+            }
             .wiki-container {
                 margin: 0;
                 padding: 24px 18px;
                 border-radius: 0;
                 border: none;
+            }
+            .wiki-title {
+                font-size: 24px;
+            }
+            .wiki-toc-drawer {
+                top: auto;
+                bottom: 0;
+                right: 0;
+                left: 0;
+                width: 100%;
+                max-height: 70vh;
+                border-radius: 16px 16px 0 0;
+                box-shadow: 0 -10px 40px rgba(0,0,0,0.25);
             }
         }
         @media print {
@@ -557,7 +727,7 @@ func (d *document) GenerateStandaloneHTML(title string, spaceName string, author
                 box-shadow: none !important;
                 max-width: 100% !important;
             }
-            .no-print, .wiki-standalone-topbar {
+            .no-print, .wiki-standalone-topbar, .wiki-sticky-toc, .wiki-floating-toc-btn, .wiki-toc-drawer {
                 display: none !important;
             }
             .wiki-header {
@@ -579,27 +749,145 @@ func (d *document) GenerateStandaloneHTML(title string, spaceName string, author
             <span class="wiki-brand-tag">{{SAFE_SPACE}}</span>
         </div>
         <div class="wiki-actions">
+            <button id="wiki-toc-toggle-btn" class="wiki-btn" title="查看文章大纲目录" style="display: none;">
+                <span>📑 本文大纲</span>
+            </button>
             <button onclick="window.print()" class="wiki-btn">
                 <span>🖨️ 打印 / 另存为 PDF</span>
             </button>
         </div>
     </div>
-    <div class="wiki-container">
-        <header class="wiki-header">
-            <h1 class="wiki-title">{{SAFE_TITLE}}</h1>
-            <div class="wiki-meta">
-                <span class="wiki-meta-item">📁 空间：{{SAFE_SPACE}}</span>
-                {{AUTHOR_HTML}}
-                <span class="wiki-meta-item">🕒 导出时间：{{NOW_STR}}</span>
+    <div class="wiki-layout-wrapper">
+        <div class="wiki-layout-flex">
+            <div class="wiki-container">
+                <header class="wiki-header">
+                    <h1 class="wiki-title">{{SAFE_TITLE}}</h1>
+                    <div class="wiki-meta">
+                        <span class="wiki-meta-item">📁 空间：{{SAFE_SPACE}}</span>
+                        {{AUTHOR_HTML}}
+                        <span class="wiki-meta-item">🕒 导出时间：{{NOW_STR}}</span>
+                    </div>
+                </header>
+                <article class="markdown-body" id="wiki-article">
+                    {{RENDERED_HTML}}
+                </article>
+                <footer class="wiki-footer no-print">
+                    本文档由 MM-Wiki 知识库系统自动生成导出
+                </footer>
             </div>
-        </header>
-        <article class="markdown-body">
-            {{RENDERED_HTML}}
-        </article>
-        <footer class="wiki-footer no-print">
-            本文档由 MM-Wiki 知识库系统自动生成导出
-        </footer>
+            <!-- 大屏右侧固定吸顶大纲 -->
+            <aside class="wiki-sticky-toc no-print" id="wiki-sticky-toc" style="display: none;">
+                <div class="wiki-toc-title">📑 本文大纲</div>
+                <nav class="wiki-toc-nav" id="wiki-toc-nav"></nav>
+            </aside>
+        </div>
     </div>
+
+    <!-- 悬浮大纲按钮与移动端/小屏抽屉面板 -->
+    <button type="button" class="wiki-floating-toc-btn no-print" id="wiki-floating-toc-btn" title="查看本文大纲" style="display: none;">📑</button>
+
+    <div class="wiki-toc-drawer no-print" id="wiki-toc-drawer">
+        <div class="wiki-toc-drawer-header">
+            <span>📑 本文大纲</span>
+            <button type="button" class="wiki-toc-drawer-close" id="wiki-toc-drawer-close">&times;</button>
+        </div>
+        <div class="wiki-toc-drawer-body wiki-toc-nav" id="wiki-toc-drawer-nav"></div>
+    </div>
+
+    <script>
+    (function() {
+        var article = document.getElementById('wiki-article');
+        if (!article) return;
+        var headings = article.querySelectorAll('h1, h2, h3, h4, h5, h6');
+        if (!headings || headings.length === 0) return;
+
+        var nav = document.getElementById('wiki-toc-nav');
+        var drawerNav = document.getElementById('wiki-toc-drawer-nav');
+        var ul = document.createElement('ul');
+
+        headings.forEach(function(h, idx) {
+            if (!h.id) {
+                h.id = 'heading-' + idx;
+            }
+            var level = parseInt(h.tagName.substring(1), 10);
+            var li = document.createElement('li');
+            li.className = 'toc-level-' + level;
+            var a = document.createElement('a');
+            a.href = '#' + h.id;
+            a.textContent = h.textContent.trim();
+            li.appendChild(a);
+            ul.appendChild(li);
+        });
+
+        if (nav) nav.appendChild(ul.cloneNode(true));
+        if (drawerNav) drawerNav.appendChild(ul);
+
+        var stickyToc = document.getElementById('wiki-sticky-toc');
+        var toggleBtn = document.getElementById('wiki-toc-toggle-btn');
+        var floatingBtn = document.getElementById('wiki-floating-toc-btn');
+        var drawer = document.getElementById('wiki-toc-drawer');
+        var drawerClose = document.getElementById('wiki-toc-drawer-close');
+
+        if (stickyToc) stickyToc.style.display = 'block';
+        if (toggleBtn) toggleBtn.style.display = 'inline-flex';
+
+        function toggleDrawer() {
+            if (!drawer) return;
+            if (drawer.style.display === 'flex') {
+                drawer.style.display = 'none';
+            } else {
+                drawer.style.display = 'flex';
+            }
+        }
+
+        if (toggleBtn) toggleBtn.addEventListener('click', toggleDrawer);
+        if (floatingBtn) floatingBtn.addEventListener('click', toggleDrawer);
+        if (drawerClose) drawerClose.addEventListener('click', function() { drawer.style.display = 'none'; });
+
+        // 点击大纲链接平滑滚动并关闭抽屉
+        document.querySelectorAll('.wiki-toc-nav a').forEach(function(link) {
+            link.addEventListener('click', function(e) {
+                var targetId = link.getAttribute('href');
+                if (targetId && targetId.startsWith('#')) {
+                    var target = document.getElementById(targetId.substring(1));
+                    if (target) {
+                        e.preventDefault();
+                        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        if (drawer) drawer.style.display = 'none';
+                    }
+                }
+            });
+        });
+
+        // ScrollSpy 滚动实时高亮当前小节与显示悬浮按钮
+        window.addEventListener('scroll', function() {
+            var st = window.pageYOffset || document.documentElement.scrollTop;
+            if (st > 140) {
+                if (floatingBtn && window.innerWidth < 1250) floatingBtn.style.display = 'flex';
+            } else {
+                if (floatingBtn) floatingBtn.style.display = 'none';
+            }
+
+            var currentId = '';
+            headings.forEach(function(h) {
+                var top = h.getBoundingClientRect().top + st;
+                if (st >= top - 90) {
+                    currentId = h.id;
+                }
+            });
+
+            if (currentId) {
+                document.querySelectorAll('.wiki-toc-nav a').forEach(function(a) {
+                    if (a.getAttribute('href') === '#' + currentId) {
+                        a.classList.add('active');
+                    } else {
+                        a.classList.remove('active');
+                    }
+                });
+            }
+        });
+    })();
+    </script>
 </body>
 </html>`
 

@@ -18,27 +18,45 @@
         padding-top: 0 !important;
     }
 
-    /* 沉浸式自适应全宽分享容器，默认 100% 宽度，彻底解除宽度限制 */
-    .share-doc-container {
+    /* 优雅居中阅读外层 Flex 包装器：居中阅读卡片 + 大屏右侧吸顶大纲并排 */
+    .share-doc-flex-wrapper {
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+        gap: 32px;
         width: 100%;
-        max-width: 100%;
-        margin: 20px auto 60px auto;
-        padding: 0 32px;
-        position: relative;
+        max-width: 1280px;
+        margin: 32px auto 80px auto;
+        padding: 0 24px;
         box-sizing: border-box;
-        transition: max-width 0.2s ease, padding 0.2s ease;
+        position: relative;
+        transition: max-width 0.2s ease;
     }
 
-    /* 可选标准居中阅读视宽模式 */
-    .share-doc-container.is-narrow {
-        max-width: 1000px;
-        margin: 32px auto 80px auto;
-        padding: 0 16px;
+    /* 居中模式（默认黄金阅读视宽模式） */
+    .share-doc-container {
+        flex: 1;
+        min-width: 0;
+        max-width: 960px;
+        width: 100%;
+        position: relative;
+        box-sizing: border-box;
+        transition: max-width 0.2s ease;
+    }
+
+    /* 全宽自适应模式 */
+    .share-doc-flex-wrapper.is-full {
+        max-width: 100% !important;
+        margin: 20px auto 60px auto !important;
+        padding: 0 32px !important;
+    }
+    .share-doc-flex-wrapper.is-full .share-doc-container {
+        max-width: 100% !important;
     }
 
     .share-doc-card {
         background: #ffffff;
-        border: 1px solid #e1e4e8;
+        border: 1px solid #d0d7de;
         border-radius: 12px;
         box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
         overflow: hidden;
@@ -137,55 +155,201 @@
         text-align: left !important;
     }
 
-    /* 侧边悬浮分享面板：仅在居中且宽屏模式下展示，全宽模式隐藏以绝不遮挡正文 */
-    .share-floating-panel {
-        display: none;
-        position: fixed;
-        top: 140px;
-        width: 120px;
-        background: #ffffff;
-        border: 1px solid #e1e4e8;
-        border-radius: 10px;
-        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
-        padding: 12px 10px;
-        text-align: center;
-        z-index: 1000;
-        transition: all 0.2s;
+    /* 大屏专属右侧固定吸顶大纲导航 (Sticky Outline TOC) */
+    .share-doc-sticky-toc-wrapper {
+        width: 250px;
+        flex-shrink: 0;
+        position: sticky;
+        top: 32px;
+        max-height: calc(100vh - 64px);
+        overflow-y: auto;
+        padding-left: 18px;
+        border-left: 1px solid #eef2f6;
+        box-sizing: border-box;
     }
 
-    @media (min-width: 1360px) {
-        .share-doc-container.is-narrow ~ .share-floating-panel {
-            display: block;
-            right: calc(50% - 500px - 140px);
+    @media (max-width: 1299px) {
+        .share-doc-sticky-toc-wrapper {
+            display: none !important;
         }
     }
 
-    .share-floating-label {
+    @media (min-width: 1300px) {
+        .share-doc-sticky-toc-wrapper {
+            display: block;
+        }
+        body.has-sticky-toc #header-toc-btn,
+        body.has-sticky-toc #view-toc-floating-btn {
+            display: none !important;
+        }
+    }
+
+    .sticky-toc-title {
         font-size: 12px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #94a3b8;
+        margin-bottom: 12px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .sticky-toc-content ul {
+        list-style: none;
+        padding-left: 12px;
+        margin: 0;
+    }
+
+    .sticky-toc-content > ul {
+        padding-left: 0;
+    }
+
+    .sticky-toc-content li {
+        margin: 5px 0;
+        font-size: 13px;
+        line-height: 1.4;
+    }
+
+    .sticky-toc-content a {
+        color: #64748b;
+        text-decoration: none;
+        display: block;
+        padding: 3px 6px;
+        border-radius: 4px;
+        transition: all 0.15s ease;
+        word-break: break-word;
+    }
+
+    .sticky-toc-content a:hover {
+        color: #2563eb;
+        background: #f1f5f9;
+    }
+
+    .sticky-toc-content a.active {
+        color: #2563eb;
         font-weight: 600;
+        background: #eff6ff;
+    }
+
+    /* 统一现代目录面板（下拉、悬浮与移动端底栏抽屉复用） */
+    .view-toc-panel {
+        display: none;
+        width: 300px;
+        max-height: 520px;
+        background: #ffffff;
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15), 0 1px 3px rgba(0, 0, 0, 0.08);
+        border: 1px solid #e1e4e8;
+        z-index: 1050;
+        flex-direction: column;
+        overflow: hidden;
+        animation: tocFadeIn 0.18s ease;
+    }
+
+    @keyframes tocFadeIn {
+        from { opacity: 0; transform: translateY(-6px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .view-toc-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 16px;
+        border-bottom: 1px solid #eaecef;
+        background: #fafbfc;
+        font-size: 13px;
+        font-weight: 600;
+        color: #24292e;
+    }
+
+    .view-toc-close {
+        border: none;
+        background: transparent;
+        font-size: 18px;
+        line-height: 1;
         color: #57606a;
-        margin-bottom: 8px;
+        cursor: pointer;
+        padding: 0;
+    }
+
+    .view-toc-close:hover {
+        color: #1f2328;
+    }
+
+    .view-toc-body {
+        padding: 12px 16px 20px 16px;
+        overflow-y: auto;
+        flex: 1;
+    }
+
+    .view-toc-body ul {
+        list-style: none;
+        padding-left: 12px;
+        margin: 0;
+    }
+
+    .view-toc-body > ul {
+        padding-left: 0;
+    }
+
+    .view-toc-body li {
+        margin: 6px 0;
+        line-height: 1.5;
+        font-size: 13px;
+    }
+
+    .view-toc-body a {
+        color: #57606a;
+        text-decoration: none;
+        display: block;
+        padding: 2px 4px;
+        border-radius: 4px;
+        transition: all 0.15s ease;
+        word-break: break-word;
+    }
+
+    .view-toc-body a:hover {
+        color: #0969da;
+        background: #f3f4f6;
+    }
+
+    /* 悬浮操作胶囊组 */
+    .view-floating-action-group {
+        position: fixed;
+        bottom: 24px;
+        right: 24px;
+        z-index: 1000;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .view-floating-btn {
+        width: 42px;
+        height: 42px;
+        border-radius: 50%;
+        background: #ffffff;
+        border: 1px solid #d0d7de;
+        color: #24292e;
         display: flex;
         align-items: center;
         justify-content: center;
-        gap: 4px;
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
+        cursor: pointer;
+        transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        user-select: none;
+        font-size: 14px;
     }
 
-    #document-qrcode, #modal-qrcode {
-        display: flex;
-        justify-content: center;
-        margin: 4px 0 8px 0;
-    }
-
-    #document-qrcode canvas, #document-qrcode img,
-    #modal-qrcode canvas, #modal-qrcode img {
-        border-radius: 4px;
-    }
-
-    .share-floating-tip {
-        font-size: 11px;
-        color: #8c959f;
-        margin: 0;
+    .view-floating-btn:hover {
+        background: #2563eb;
+        color: #ffffff;
+        border-color: #2563eb;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 18px rgba(37, 99, 235, 0.35);
     }
 
     /* 扫码分享弹窗模态框 */
@@ -236,18 +400,34 @@
     }
 
     @media (max-width: 768px) {
-        .share-doc-container {
-            padding: 0 12px;
-            margin: 12px auto 40px auto;
+        .share-doc-flex-wrapper {
+            padding: 0 12px !important;
+            margin: 12px auto 40px auto !important;
         }
         .share-doc-header, .share-doc-body {
-            padding: 20px 16px;
+            padding: 20px 16px !important;
         }
         .share-doc-header-top {
-            flex-direction: column;
+            flex-direction: column !important;
+            gap: 12px !important;
+        }
+        .share-doc-title {
+            font-size: 21px !important;
         }
         .share-doc-actions {
-            width: 100%;
+            width: 100% !important;
+            flex-wrap: wrap;
+        }
+        .view-toc-panel {
+            position: fixed !important;
+            bottom: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            top: auto !important;
+            width: 100% !important;
+            max-height: 70vh !important;
+            border-radius: 16px 16px 0 0 !important;
+            box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.25) !important;
         }
     }
 
@@ -299,7 +479,7 @@
             margin: 15mm 12mm 15mm 12mm;
             size: auto;
         }
-        html, body, #frame-body, .share-doc-container, .share-doc-card {
+        html, body, #frame-body, .share-doc-flex-wrapper, .share-doc-container, .share-doc-card {
             background-color: #ffffff !important;
             padding: 0 !important;
             margin: 0 !important;
@@ -310,7 +490,9 @@
             overflow: visible !important;
         }
         .share-doc-actions,
-        .share-floating-panel,
+        .share-doc-sticky-toc-wrapper,
+        .view-floating-action-group,
+        .view-toc-panel,
         .share-qrcode-modal,
         .share-footer,
         .dropdown-menu,
@@ -366,109 +548,136 @@
 {{$pageContent := .page_content}}{{$document := .document}}{{$parentDocuments := .parent_documents}}
 {{$createUser := .create_user}}{{$editUser := .edit_user}}{{$space := .space}}
 
-<div class="share-doc-container">
-    <div class="share-doc-card">
-        <!-- 头部标题与元信息 -->
-        <div class="share-doc-header">
-            <div class="share-doc-header-top">
-                <h1 class="share-doc-title"><i class="fa fa-file-word-o" style="color: #2563eb; margin-right: 8px;"></i>{{$document.name}}</h1>
-                <div class="share-doc-actions">
-                    <button type="button" class="doc-action-btn" id="share-width-toggle-btn" title="切换全宽/居中阅读模式">
-                        <i class="fa fa-compress"></i> <span>居中</span>
-                    </button>
-                    <button type="button" class="doc-action-btn" id="share-qrcode-toggle-btn" title="显示手机扫码分享二维码">
-                        <i class="fa fa-qrcode"></i> <span>扫码分享</span>
-                    </button>
-                    {{if eq $space.is_export "1"}}
-                    <div class="dropdown" style="display: inline-block;">
-                        <button type="button" class="doc-action-btn dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" title="导出多格式文档或打印">
-                            <i class="glyphicon glyphicon-export"></i> 导出 <span class="caret"></span>
+<div class="share-doc-flex-wrapper" id="share-flex-wrapper">
+    <div class="share-doc-container">
+        <div class="share-doc-card">
+            <!-- 头部标题与元信息 -->
+            <div class="share-doc-header">
+                <div class="share-doc-header-top">
+                    <h1 class="share-doc-title"><i class="fa fa-file-word-o" style="color: #2563eb; margin-right: 8px;"></i>{{$document.name}}</h1>
+                    <div class="share-doc-actions">
+                        <button type="button" class="doc-action-btn" id="header-toc-btn" style="display: none;">
+                            <i class="fa fa-list-ul"></i> 目录
                         </button>
-                        <ul class="dropdown-menu dropdown-menu-right modern-export-dropdown">
-                            <li class="dropdown-header"><i class="fa fa-download"></i> 导出本地文件</li>
-                            <li>
-                                <a href="/page/export?document_id={{$document.document_id}}&output=md">
-                                    <i class="fa fa-file-text-o text-primary"></i> <strong>Markdown (.md)</strong>
-                                    <span class="export-desc">直接导出原生 Markdown 源文件</span>
-                                </a>
-                            </li>
-                            <li>
-                                <a href="/page/export?document_id={{$document.document_id}}&output=html" target="_blank">
-                                    <i class="fa fa-file-code-o text-success"></i> <strong>离线网页 (.html)</strong>
-                                    <span class="export-desc">独立离线单文件，含完整样式与排版</span>
-                                </a>
-                            </li>
-                            <li>
-                                <a href="/page/export?document_id={{$document.document_id}}&output=zip">
-                                    <i class="fa fa-file-archive-o text-warning"></i> <strong>完整归档包 (.zip)</strong>
-                                    <span class="export-desc">打包 Markdown 原文与全部关联附件</span>
-                                </a>
-                            </li>
-                            <li role="separator" class="divider"></li>
-                            <li class="dropdown-header"><i class="fa fa-print"></i> 打印与交付</li>
-                            <li>
-                                <a href="javascript:void(0)" onclick="window.print()">
-                                    <i class="fa fa-print text-info"></i> <strong>打印 / 另存为 PDF</strong>
-                                    <span class="export-desc">呼起系统打印，排版净化直出 PDF</span>
-                                </a>
-                            </li>
-                        </ul>
+                        <button type="button" class="doc-action-btn" id="share-width-toggle-btn" title="切换全宽/居中阅读模式">
+                            <i class="fa fa-arrows-alt"></i> <span>全宽</span>
+                        </button>
+                        <button type="button" class="doc-action-btn" id="share-qrcode-toggle-btn" title="显示手机扫码分享二维码">
+                            <i class="fa fa-qrcode"></i> <span>扫码分享</span>
+                        </button>
+                        {{if eq $space.is_export "1"}}
+                        <div class="dropdown" style="display: inline-block;">
+                            <button type="button" class="doc-action-btn dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" title="导出多格式文档或打印">
+                                <i class="glyphicon glyphicon-export"></i> 导出 <span class="caret"></span>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-right modern-export-dropdown">
+                                <li class="dropdown-header"><i class="fa fa-download"></i> 导出本地文件</li>
+                                <li>
+                                    <a href="/page/export?document_id={{$document.document_id}}&output=md">
+                                        <i class="fa fa-file-text-o text-primary"></i> <strong>Markdown (.md)</strong>
+                                        <span class="export-desc">直接导出原生 Markdown 源文件</span>
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="/page/export?document_id={{$document.document_id}}&output=html" target="_blank">
+                                        <i class="fa fa-file-code-o text-success"></i> <strong>离线网页 (.html)</strong>
+                                        <span class="export-desc">独立离线单文件，含完整样式与排版</span>
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="/page/export?document_id={{$document.document_id}}&output=zip">
+                                        <i class="fa fa-file-archive-o text-warning"></i> <strong>完整归档包 (.zip)</strong>
+                                        <span class="export-desc">打包 Markdown 原文与全部关联附件</span>
+                                    </a>
+                                </li>
+                                <li role="separator" class="divider"></li>
+                                <li class="dropdown-header"><i class="fa fa-print"></i> 打印与交付</li>
+                                <li>
+                                    <a href="javascript:void(0)" onclick="window.print()">
+                                        <i class="fa fa-print text-info"></i> <strong>打印 / 另存为 PDF</strong>
+                                        <span class="export-desc">呼起系统打印，排版净化直出 PDF</span>
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                        {{else}}
+                        <button type="button" class="doc-action-btn" onclick="window.print()" title="打印文档或另存为 PDF">
+                            <i class="fa fa-print"></i> <span>打印</span>
+                        </button>
+                        {{end}}
                     </div>
-                    {{else}}
-                    <button type="button" class="doc-action-btn" onclick="window.print()" title="打印文档或另存为 PDF">
-                        <i class="fa fa-print"></i> <span>打印</span>
-                    </button>
-                    {{end}}
+                </div>
+                <div class="share-doc-meta">
+                    <span class="share-meta-item">
+                        <i class="fa fa-folder-open-o"></i>
+                        {{range $parentDocument := $parentDocuments}}
+                            {{if eq $parentDocument.parent_id "0"}}
+                                {{$parentDocument.name}}
+                            {{else}}
+                                / {{$parentDocument.name}}
+                            {{end}}
+                        {{end}}
+                    </span>
+                    <span class="share-meta-dot">·</span>
+                    <span class="share-meta-item">
+                        <i class="fa fa-user-o"></i>
+                        创建于 {{dateFormat $document.create_time "Y-m-d H:i"}} By {{$createUser.username}}（{{$createUser.given_name}}）
+                    </span>
+                    <span class="share-meta-dot">·</span>
+                    <span class="share-meta-item">
+                        <i class="fa fa-clock-o"></i>
+                        更新于 {{dateFormat $document.update_time "Y-m-d H:i"}} By {{$editUser.username}}（{{$editUser.given_name}}）
+                    </span>
                 </div>
             </div>
-            <div class="share-doc-meta">
-                <span class="share-meta-item">
-                    <i class="fa fa-folder-open-o"></i>
-                    {{range $parentDocument := $parentDocuments}}
-                        {{if eq $parentDocument.parent_id "0"}}
-                            {{$parentDocument.name}}
-                        {{else}}
-                            / {{$parentDocument.name}}
-                        {{end}}
-                    {{end}}
-                </span>
-                <span class="share-meta-dot">·</span>
-                <span class="share-meta-item">
-                    <i class="fa fa-user-o"></i>
-                    创建于 {{dateFormat $document.create_time "Y-m-d H:i"}} By {{$createUser.username}}（{{$createUser.given_name}}）
-                </span>
-                <span class="share-meta-dot">·</span>
-                <span class="share-meta-item">
-                    <i class="fa fa-clock-o"></i>
-                    更新于 {{dateFormat $document.update_time "Y-m-d H:i"}} By {{$editUser.username}}（{{$editUser.given_name}}）
-                </span>
+
+            <!-- 正文区域 -->
+            <div class="share-doc-body">
+                <textarea id="raw_markdown_content" style="display:none;">{{$pageContent}}</textarea>
+                <div id="document_content_body" class="preview-content"></div>
             </div>
         </div>
 
-        <!-- 正文区域 -->
-        <div class="share-doc-body">
-            <textarea id="raw_markdown_content" style="display:none;">{{$pageContent}}</textarea>
-            <div id="document_content_body" class="preview-content"></div>
+        <!-- 底部版权 -->
+        <footer class="share-footer">
+            © {{.copyright}} &nbsp;·&nbsp;
+            <a target="_blank" href="https://github.com/phachon/mm-wiki">Powered by MM-Wiki {{.version}}</a>
+        </footer>
+    </div>
+
+    <!-- 大屏专属右侧固定吸顶大纲导航 (Sticky Outline) -->
+    <div class="share-doc-sticky-toc-wrapper hidden-xs hidden-sm hidden-md" id="sticky-toc-wrapper" style="display: none;">
+        <div class="share-doc-sticky-toc-inner">
+            <div class="sticky-toc-title">
+                <i class="fa fa-align-left text-primary"></i> <span>本文大纲</span>
+            </div>
+            <div class="sticky-toc-content" id="sticky-doc-toc"></div>
         </div>
     </div>
-
-    <!-- 底部版权 -->
-    <footer class="share-footer">
-        © {{.copyright}} &nbsp;·&nbsp;
-        <a target="_blank" href="https://github.com/phachon/mm-wiki">Powered by MM-Wiki {{.version}}</a>
-    </footer>
 </div>
 
-<!-- 侧边悬浮微信分享扫一扫（居中大屏模式下展示） -->
-<div class="share-floating-panel" id="display_section">
-    <div class="share-floating-label">
-        <i class="fa fa-wechat" style="color: #07c160;"></i> 扫码阅读
+<!-- 现代全端/移动端悬浮动作胶囊组 -->
+<div class="view-floating-action-group">
+    <!-- 回到顶部 -->
+    <button type="button" class="view-floating-btn" id="view-scroll-top-btn" title="回到顶部" style="display: none;">
+        <i class="fa fa-arrow-up"></i>
+    </button>
+    <!-- 悬浮目录大纲按钮 -->
+    <button type="button" class="view-floating-btn" id="view-toc-floating-btn" title="文章大纲目录" style="display: none;">
+        <i class="fa fa-list-ul"></i>
+    </button>
+</div>
+
+<!-- 统一现代目录面板（下拉、悬浮与移动端底栏抽屉复用） -->
+<div class="view-toc-panel" id="view-toc-panel">
+    <div class="view-toc-header">
+        <span><i class="fa fa-list-ul" style="margin-right: 6px;"></i>文档目录</span>
+        <button type="button" class="view-toc-close" id="view-toc-close">&times;</button>
     </div>
-    <div id="document-qrcode"></div>
-    <p class="share-floating-tip">微信扫一扫分享</p>
+    <div class="view-toc-body" id="page-view-dir-toc"></div>
 </div>
 
-<!-- 弹窗式微信分享扫一扫（全屏/点击按钮时展示） -->
+<!-- 弹窗式微信分享扫一扫（点击按钮时展示） -->
 <div class="share-qrcode-modal" id="share-qrcode-modal">
     <div class="share-qrcode-dialog">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
@@ -477,7 +686,7 @@
             </span>
             <button type="button" id="share-modal-close" style="border: none; background: transparent; font-size: 20px; line-height: 1; cursor: pointer; color: #656d76;">&times;</button>
         </div>
-        <div id="modal-qrcode"></div>
+        <div id="modal-qrcode" style="display: flex; justify-content: center; margin: 4px 0 8px 0;"></div>
         <p style="font-size: 12px; color: #8c959f; margin: 8px 0 0 0;">微信扫一扫，随时随地阅读与分享</p>
     </div>
 </div>
@@ -494,13 +703,10 @@
 <script src="/static/plugins/markdown-editor/js/katex-auto-render.min.js"></script>
 <!-- Mermaid (3.2MB) 采用按需懒加载：仅当展示页包含 Mermaid 图表时由 editor.js 异步加载，无图表时 0 下载 -->
 <script src="/static/plugins/markdown-editor/js/editor.js"></script>
+<script src="/static/plugins/md-toc/md-toc.js"></script>
 
 <script type="text/javascript">
     $(function() {
-        if (Common.isMobile()) {
-            $("#display_section").hide();
-        }
-
         var rawContent = $("#raw_markdown_content").val() || "";
         var container = document.getElementById("document_content_body");
 
@@ -508,48 +714,153 @@
             window.MMWikiEditor.render(rawContent, container);
         }
 
-        $.scrollUp({
-            animation: 'fade',
-            scrollImg: {
-                active: true,
-                type: 'background',
-                src: 'img/top.png'
-            }
-        });
-
-        // 渲染侧边与弹窗二维码
-        $('#document-qrcode').qrcode({
-            width: 96,
-            height: 96,
-            text: window.location.href
-        });
-
+        // 渲染弹窗二维码
         $('#modal-qrcode').qrcode({
             width: 160,
             height: 160,
             text: window.location.href
         });
 
-        // 宽度模式切换逻辑（默认 100% 全宽自适应，支持一键切换居中阅读并持久化）
-        var savedShareWidthMode = localStorage.getItem("mmwiki_share_width_mode") || "full";
+        // 宽度模式切换逻辑（默认居中模式，优雅高档，支持一键切换全宽）
+        var savedShareWidthMode = localStorage.getItem("mmwiki_share_width_mode") || "narrow";
         function applyShareWidthMode(mode) {
-            if (mode === "narrow") {
-                $(".share-doc-container").addClass("is-narrow");
-                $("#share-width-toggle-btn").html('<i class="fa fa-arrows-alt"></i> <span>全宽</span>');
-                $("#share-width-toggle-btn").attr("title", "当前为居中模式，点击切换为全宽自适应");
-            } else {
-                $(".share-doc-container").removeClass("is-narrow");
+            if (mode === "full") {
+                $("#share-flex-wrapper").addClass("is-full");
                 $("#share-width-toggle-btn").html('<i class="fa fa-compress"></i> <span>居中</span>');
                 $("#share-width-toggle-btn").attr("title", "当前为全宽模式，点击切换为居中阅读模式");
+            } else {
+                $("#share-flex-wrapper").removeClass("is-full");
+                $("#share-width-toggle-btn").html('<i class="fa fa-arrows-alt"></i> <span>全宽</span>');
+                $("#share-width-toggle-btn").attr("title", "当前为居中模式，点击切换为全宽自适应");
             }
         }
         applyShareWidthMode(savedShareWidthMode);
 
         $("#share-width-toggle-btn").on("click", function() {
-            var currentMode = $(".share-doc-container").hasClass("is-narrow") ? "narrow" : "full";
-            var nextMode = (currentMode === "narrow") ? "full" : "narrow";
+            var currentMode = $("#share-flex-wrapper").hasClass("is-full") ? "full" : "narrow";
+            var nextMode = (currentMode === "full") ? "narrow" : "full";
             localStorage.setItem("mmwiki_share_width_mode", nextMode);
             applyShareWidthMode(nextMode);
+        });
+
+        // 生成目录树
+        new Toc("document_content_body", {
+            clazz: "page-view-dir-toc",
+            level: 7,
+            top: -2,
+            targetId: "page-view-dir-toc"
+        });
+
+        // 检查是否有目录项
+        var tocList = $("#page-view-dir-toc").find("li");
+        var hasToc = tocList.length > 0;
+        if (hasToc) {
+            $("#header-toc-btn").show();
+
+            // 为超宽屏 / 大屏克隆并激活右侧固定吸顶大纲
+            $("#sticky-doc-toc").html($("#page-view-dir-toc").html());
+            $("body").addClass("has-sticky-toc");
+            $("#sticky-toc-wrapper").show();
+
+            // 监听滚动实现 ScrollSpy 与悬浮目录按钮显隐
+            var headings = $("#document_content_body").find("h1, h2, h3, h4, h5, h6");
+            $(window).on("scroll", function() {
+                var st = $(window).scrollTop() || $(document.body).scrollTop() || 0;
+
+                if (st > 140) {
+                    if (!$("body").hasClass("has-sticky-toc") || $(window).width() < 1300) {
+                        $("#view-toc-floating-btn").fadeIn(150);
+                    }
+                } else {
+                    $("#view-toc-floating-btn").fadeOut(150);
+                }
+
+                if (st > 200) {
+                    $("#view-scroll-top-btn").fadeIn(150);
+                } else {
+                    $("#view-scroll-top-btn").fadeOut(150);
+                }
+
+                // ScrollSpy 实时高亮当前正在阅读的小节
+                var currentHeadingId = "";
+                headings.each(function() {
+                    var elTop = $(this).offset().top;
+                    if (st >= elTop - 70) {
+                        currentHeadingId = $(this).attr("id");
+                    }
+                });
+                if (currentHeadingId) {
+                    $("#sticky-doc-toc a").removeClass("active");
+                    $("#sticky-doc-toc a[href='#" + currentHeadingId + "']").addClass("active");
+                }
+            });
+        }
+
+        // 打开/关闭目录面板函数
+        function openToc(fromElement, isFixed) {
+            var panel = $("#view-toc-panel");
+            if (panel.is(":visible")) {
+                panel.fadeOut(150);
+                return;
+            }
+
+            if ($(window).width() <= 768) {
+                panel.removeAttr("style").fadeIn(150).css("display", "flex");
+            } else if (isFixed) {
+                panel.css({
+                    position: "fixed",
+                    top: "58px",
+                    right: "28px",
+                    left: "auto"
+                }).fadeIn(150).css("display", "flex");
+            } else {
+                var offset = fromElement.offset();
+                var btnWidth = fromElement.outerWidth();
+                var btnHeight = fromElement.outerHeight();
+                var docWidth = $(document).width();
+                panel.css({
+                    position: "absolute",
+                    top: (offset.top + btnHeight + 8) + "px",
+                    right: (docWidth - (offset.left + btnWidth)) + "px",
+                    left: "auto"
+                }).fadeIn(150).css("display", "flex");
+            }
+        }
+
+        $("#header-toc-btn").on("click", function(e) {
+            e.stopPropagation();
+            openToc($(this), false);
+        });
+
+        $("#view-toc-floating-btn").on("click", function(e) {
+            e.stopPropagation();
+            openToc($(this), true);
+        });
+
+        $("#view-toc-close").on("click", function(e) {
+            e.stopPropagation();
+            $("#view-toc-panel").fadeOut(150);
+        });
+
+        // 统一处理点击目录链接平滑滚动
+        $("#page-view-dir-toc, #sticky-doc-toc").on("click", "a", function(e) {
+            var targetId = $(this).attr("href");
+            if (targetId && targetId.startsWith("#")) {
+                var targetEl = $(targetId);
+                if (targetEl.length) {
+                    e.preventDefault();
+                    var currentScroll = $(window).scrollTop() || $(document.body).scrollTop() || 0;
+                    var elRect = targetEl[0].getBoundingClientRect();
+                    var finalScroll = currentScroll + elRect.top - 20;
+                    $("html, body").animate({ scrollTop: finalScroll }, 200);
+                    $("#view-toc-panel").fadeOut(150);
+                }
+            }
+        });
+
+        $("#view-scroll-top-btn").on("click", function(e) {
+            e.preventDefault();
+            $("html, body").animate({ scrollTop: 0 }, 220);
         });
 
         // 弹窗式二维码开关
