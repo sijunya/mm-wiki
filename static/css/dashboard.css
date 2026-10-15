@@ -462,9 +462,9 @@ body {
 /* Collection & Page headers */
 .collection-doc > h3,
 .page-tree > h4 {
-    margin-top: 6px !important;
-    margin-bottom: 8px !important;
-    font-size: 15px !important;
+    margin-top: 4px !important;
+    margin-bottom: 6px !important;
+    font-size: 13.5px !important;
     font-weight: 700 !important;
     color: #0f172a !important;
     display: flex !important;
@@ -475,8 +475,8 @@ body {
 .collection-doc > hr,
 .page-tree > hr,
 .widget > hr {
-    margin-top: 8px !important;
-    margin-bottom: 12px !important;
+    margin-top: 6px !important;
+    margin-bottom: 6px !important;
     border: 0 !important;
     border-bottom: 1px solid #f1f5f9 !important;
 }
@@ -489,18 +489,20 @@ body {
 }
 
 .collection-doc > ul > li {
-    margin-bottom: 2px;
+    margin-bottom: 1px;
     list-style: none;
 }
 
 .collection-doc > ul > li > a {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 7px 10px;
-    border-radius: 6px;
+    gap: 6px;
+    height: 24px;
+    line-height: 24px;
+    padding: 0 8px;
+    border-radius: 5px;
     color: #334155;
-    font-size: 13.5px;
+    font-size: 13px;
     font-weight: 500;
     text-decoration: none;
     transition: all 0.15s ease;
@@ -513,7 +515,9 @@ body {
 
 .collection-doc > ul > li > a i {
     color: #3b82f6;
-    font-size: 14px;
+    font-size: 13px;
+    width: 14px;
+    text-align: center;
 }
 
 /* Search inputs in sidebar */
