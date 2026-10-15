@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/astaxie/beego"
+	"github.com/astaxie/beego/context"
 	"github.com/chaiyd/mm-wiki/app"
 	"github.com/chaiyd/mm-wiki/app/controllers"
 	systemControllers "github.com/chaiyd/mm-wiki/app/modules/system/controllers"
@@ -19,6 +20,11 @@ func initRouter() {
 	beego.BConfig.EnableGzip = true
 	beego.BConfig.WebConfig.AutoRender = false
 	beego.BConfig.RouterCaseSensitive = false
+
+	// 静态资源启用浏览器强缓存 (7天)，大幅缩短二次访问静态资源耗时至 0ms
+	beego.InsertFilter("/static/*", beego.BeforeStatic, func(ctx *context.Context) {
+		ctx.Output.Header("Cache-Control", "public, max-age=604800")
+	})
 
 	beego.Router("/", &controllers.MainController{}, "*:Index")
 	beego.Router("/author", &controllers.AuthorController{}, "*:Index")

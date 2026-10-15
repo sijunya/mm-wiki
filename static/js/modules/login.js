@@ -66,8 +66,11 @@ var Login = {
 			}
 		}
 
-		var options = {
-			dataType: 'json',
+		$.ajax({
+			url: $form.attr("action") || "/author/login",
+			type: $form.attr("method") || "POST",
+			data: $form.serialize(),
+			dataType: "json",
 			success: response,
 			error: function(xhr, status, error) {
 				if (submitEle.length > 0) {
@@ -75,9 +78,7 @@ var Login = {
 				}
 				showError("网络请求异常 (" + (error || status) + ")，请稍后重试");
 			}
-		};
-
-		$form.ajaxSubmit(options);
+		});
 		return false;
 	}
 };
