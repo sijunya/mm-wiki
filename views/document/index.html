@@ -43,21 +43,11 @@
 </div>
 <script type="text/javascript" src="/static/js/modules/document.js"></script>
 <script type="text/javascript">
-    var documentsData = [];
-    {{range $document := $documents}}
-        var documentData = {
-            'spaceId': parseInt({{$document.space_id}}),
-            'id': parseInt({{$document.document_id}}),
-            'pId': parseInt({{$document.parent_id}}),
-            'name': {{$document.name}},
-            'open': false,
-            'isParent': false
-        };
-        {{if eq $document.type "2"}}
-            documentData.isParent = true;
-        {{end}}
-        documentsData.push(documentData);
+    var documentsData = [
+    {{range $i, $document := $documents}}
+        {{if $i}},{{end}}{spaceId:parseInt({{$document.space_id}}),id:parseInt({{$document.document_id}}),pId:parseInt({{$document.parent_id}}),name:{{$document.name}},open:false,isParent:{{if eq $document.type "2"}}true{{else}}false{{end}}}
     {{end}}
+    ];
     Document.ListTree("#dir_tree", documentsData, {{$defaultDocumentId}}, {{.is_editor}}, {{.is_delete}});
     Layers.bindIframe("[name='create_document']", "创建文档", "345px", "800px");
 </script>
