@@ -1129,21 +1129,38 @@
 
     var xhr = new XMLHttpRequest();
     xhr.open('POST', uploadUrl, true);
+    xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
     xhr.onload = function () {
       try {
-        var res = JSON.parse(xhr.responseText);
+        var text = (xhr.responseText || '').trim();
+        if (text.indexOf('<!DOCTYPE') === 0 || text.indexOf('<html') === 0 || (xhr.responseURL && xhr.responseURL.indexOf('/author/index') !== -1)) {
+          alert('登录已失效或会话过期，请重新登录后再上传图片');
+          if (self.saveStatus) self.saveStatus.textContent = '上传失败：未登录';
+          return;
+        }
+        var res = JSON.parse(text);
+        if (res.code === 0 && res.message) {
+          alert('图片上传失败: ' + res.message);
+          if (self.saveStatus) self.saveStatus.textContent = '上传失败';
+          return;
+        }
         if (res.success === 1) {
           var imgMd = '\n![' + file.name + '](' + res.url + ')\n';
           self.insertTextAtCursor(imgMd);
           if (self.saveStatus) self.saveStatus.textContent = '图片已上传';
         } else {
           alert('图片上传失败: ' + (res.message || '服务端错误'));
+          if (self.saveStatus) self.saveStatus.textContent = '上传失败';
         }
       } catch (err) {
         alert('解析上传响应失败: ' + err.message);
+        if (self.saveStatus) self.saveStatus.textContent = '上传失败';
       }
     };
-    xhr.onerror = function () { alert('图片上传网络请求异常'); };
+    xhr.onerror = function () {
+      alert('图片上传网络请求异常');
+      if (self.saveStatus) self.saveStatus.textContent = '网络异常';
+    };
     xhr.send(formData);
   };
 
