@@ -33,6 +33,7 @@ var Document = {
         //配置信息
         var setting = {
             view: {
+                showLine: false,
                 showIcon: showIconForTree,
                 addHoverDom: addHoverDom,
                 removeHoverDom: removeHoverDom
