@@ -73,12 +73,14 @@ func (this *AuthorController) Login() {
 
 	// save session
 	this.SetSession("author", user)
-    // save cookie
-    // 移除 IP 绑定，只使用 UA + 密码 生成标识
-    identify := utils.Encrypt.Md5Encode(this.Ctx.Request.UserAgent() + password)
+	// save cookie（采用基于用户名与密码哈希的稳定安全凭证，防止 UA/IP 频繁变动导致误登出，密码变更立即全端失效）
+	identify := utils.Encrypt.Md5Encode(user["username"] + user["password"])
 	passportValue := utils.Encrypt.Base64Encode(username + "@" + identify)
 	passport := beego.AppConfig.String("author::passport")
 	cookieExpired, _ := beego.AppConfig.Int64("author::cookie_expired")
+	if cookieExpired <= 0 {
+		cookieExpired = 30 * 86400 // 默认 30 天
+	}
 	this.Ctx.SetCookie(passport, passportValue, cookieExpired)
 
 	this.Ctx.Request.PostForm.Del("password")
@@ -167,12 +169,14 @@ func (this *AuthorController) AuthLogin() {
 
 	// save session
 	this.SetSession("author", user)
-    // save cookie
-    // 移除 IP 绑定，只使用 UA + 密码 生成标识
-    identify := utils.Encrypt.Md5Encode(this.Ctx.Request.UserAgent() + passwordEncode)
+	// save cookie（采用基于用户名与密码哈希的稳定安全凭证，防止 UA/IP 频繁变动导致误登出，密码变更立即全端失效）
+	identify := utils.Encrypt.Md5Encode(user["username"] + user["password"])
 	passportValue := utils.Encrypt.Base64Encode(user["username"] + "@" + identify)
 	passport := beego.AppConfig.String("author::passport")
 	cookieExpired, _ := beego.AppConfig.Int64("author::cookie_expired")
+	if cookieExpired <= 0 {
+		cookieExpired = 30 * 86400 // 默认 30 天
+	}
 	this.Ctx.SetCookie(passport, passportValue, cookieExpired)
 
 	this.Ctx.Request.PostForm.Del("password")
@@ -185,7 +189,7 @@ func (this *AuthorController) AuthLogin() {
 func (this *AuthorController) Logout() {
 	this.InfoLog("退出成功")
 	passport := beego.AppConfig.String("author::passport")
-	this.Ctx.SetCookie(passport, "")
+	this.Ctx.SetCookie(passport, "", -1)
 	this.SetSession("author", nil)
 	this.DelSession("author")
 

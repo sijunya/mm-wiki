@@ -116,11 +116,29 @@ func initConfig() {
 	// views path
 	beego.BConfig.WebConfig.ViewsPath = filepath.Join(RootDir, "./views/")
 
-	// session
-	//beego.BConfig.WebConfig.Session.SessionProvider = "memory"
-	//beego.BConfig.WebConfig.Session.SessionProviderConfig = ".session"
-	//beego.BConfig.WebConfig.Session.SessionName = "mmwikissid"
-	//beego.BConfig.WebConfig.Session.SessionOn = true
+	// session 默认保持 30 天持久登录，避免频繁过期
+	sessionCookieLifeTime, _ := beego.AppConfig.Int("sessioncookielifetime")
+	if sessionCookieLifeTime <= 0 {
+		sessionCookieLifeTime = 30 * 86400 // 默认 30 天
+	}
+	beego.BConfig.WebConfig.Session.SessionCookieLifeTime = sessionCookieLifeTime
+
+	sessionGCMaxLifetime, _ := beego.AppConfig.Int64("sessiongcmaxlifetime")
+	if sessionGCMaxLifetime <= 0 {
+		sessionGCMaxLifetime = 30 * 86400 // 默认 30 天
+	}
+	beego.BConfig.WebConfig.Session.SessionGCMaxLifetime = sessionGCMaxLifetime
+
+	// 如果使用 file 存储 session，确保目录存在
+	if beego.AppConfig.String("sessionprovider") == "file" {
+		sessDir := beego.AppConfig.String("sessionproviderconfig")
+		if sessDir != "" {
+			if !filepath.IsAbs(sessDir) {
+				sessDir = filepath.Join(RootDir, sessDir)
+			}
+			os.MkdirAll(sessDir, 0755)
+		}
+	}
 
 	// log
 	logConfigs, err := beego.AppConfig.GetSection("log")

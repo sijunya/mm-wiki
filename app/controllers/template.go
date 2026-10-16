@@ -73,11 +73,7 @@ func (this *TemplateController) isLogin() bool {
 	if cookie == "" {
 		return false
 	}
-	user := this.GetSession("author")
-	// session is empty
-	if user == nil {
-		return false
-	}
+
 	cookieValue, _ := utils.Encrypt.Base64Decode(cookie)
 	identifyList := strings.Split(cookieValue, "@")
 	if cookieValue == "" || len(identifyList) != 2 {
@@ -85,26 +81,59 @@ func (this *TemplateController) isLogin() bool {
 	}
 	username := identifyList[0]
 	identify := identifyList[1]
-	userValue := user.(map[string]string)
 
-	// cookie  session name
-	if username != userValue["username"] {
+	var userValue map[string]string
+
+	user := this.GetSession("author")
+	if user != nil {
+		if uMap, ok := user.(map[string]string); ok {
+			if username == uMap["username"] {
+				userValue = uMap
+			}
+		}
+	}
+
+	// 如果 Session 丢失（例如服务重启、内存回收、Session GC 过期、浏览器关闭），从有效 Cookie 自动免密恢复会话
+	if userValue == nil {
+		dbUser, err := models.UserModel.GetUserByUsername(username)
+		if err != nil || len(dbUser) == 0 {
+			return false
+		}
+		// 检查用户是否被禁用或删除
+		if dbUser["is_delete"] != "0" || dbUser["is_forbidden"] != "0" {
+			return false
+		}
+		userValue = dbUser
+	}
+
+	// 校验 identify
+	// 兼容稳定签名（用户名+密码哈希）、纯密码哈希与旧版带 UA 签名，防止浏览器静默升级导致误登出，同时密码修改立即全端失效
+	expectedUserPass := utils.Encrypt.Md5Encode(userValue["username"] + userValue["password"])
+	expectedPure := utils.Encrypt.Md5Encode(userValue["password"])
+	expectedWithUA := utils.Encrypt.Md5Encode(this.Ctx.Request.UserAgent() + userValue["password"])
+	if identify != expectedUserPass && identify != expectedPure && identify != expectedWithUA {
 		return false
 	}
-    // 使用 UA + 密码 进行校验（取消 IP 绑定）
-    if identify != utils.Encrypt.Md5Encode(this.Ctx.Request.UserAgent()+userValue["password"]) {
-        return false
-    }
-	// flush session
+
+	// 刷新用户信息与 Session
 	newUser, err := models.UserModel.GetUserByUserId(userValue["user_id"])
-	if err != nil {
-		this.ErrorLog("登录成功 flush session 失败：" + err.Error())
+	if err != nil || len(newUser) == 0 || newUser["is_delete"] != "0" || newUser["is_forbidden"] != "0" {
+		this.ErrorLog("登录状态刷新用户失败")
 		return false
 	}
-	// flush session
 	this.SetSession("author", newUser)
-	this.User = this.GetSession("author").(map[string]string)
+	this.User = newUser
 	this.UserId = this.User["user_id"]
+
+	// 滑动窗口自动续期 Cookie（30天），保证活跃用户在使用期间永远不会突然掉线
+	cookieExpired, _ := beego.AppConfig.Int64("author::cookie_expired")
+	if cookieExpired <= 0 {
+		cookieExpired = 30 * 86400 // 默认 30 天
+	}
+	// 统一刷新为最新稳定签名的 passport cookie
+	stableIdentify := utils.Encrypt.Md5Encode(newUser["username"] + newUser["password"])
+	newPassportValue := utils.Encrypt.Base64Encode(newUser["username"] + "@" + stableIdentify)
+	this.Ctx.SetCookie(passport, newPassportValue, cookieExpired)
 
 	// 查找系统名称
 	systemName := models.ConfigModel.GetConfigValueByKey(models.ConfigKeySystemName, "Markdown Mini Wiki")
