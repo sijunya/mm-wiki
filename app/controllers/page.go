@@ -400,15 +400,16 @@ func (this *PageController) Export() {
 		this.ViewError("文档所在空间不存在！")
 	}
 
-	// check space document privilege
-	isVisit, _, _ := this.GetDocumentPrivilege(space)
-	if !isVisit {
-		this.ViewError("您没有权限导出该空间下文档！")
-	}
-
 	// check space is allow export
 	if space["is_export"] != fmt.Sprintf("%d", models.Space_Download_True) {
 		this.ViewError("该文档不允许被导出！")
+	}
+
+	// check space document privilege or space is allow share
+	isVisit, _, _ := this.GetDocumentPrivilege(space)
+	isShare := space["is_share"] == fmt.Sprintf("%d", models.Space_Share_True)
+	if !isVisit && !isShare {
+		this.ViewError("您没有权限导出该空间下文档！")
 	}
 
 	// get parent documents by document

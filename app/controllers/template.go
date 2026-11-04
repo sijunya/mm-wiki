@@ -60,24 +60,25 @@ func (this *TemplateController) Prepare() {
 	}
 }
 
+// check is guest allowed without login
+func (this *TemplateController) isGuestAllowed() bool {
+	return this.controllerName == "page" && (this.actionName == "display" || this.actionName == "export")
+}
+
 // check is login
 func (this *TemplateController) isLogin() bool {
-
-	if this.controllerName == "page" && this.actionName == "display" {
-		return true
-	}
 
 	passport := beego.AppConfig.String("author::passport")
 	cookie := this.Ctx.GetCookie(passport)
 	// cookie is empty
 	if cookie == "" {
-		return false
+		return this.isGuestAllowed()
 	}
 
 	cookieValue, _ := utils.Encrypt.Base64Decode(cookie)
 	identifyList := strings.Split(cookieValue, "@")
 	if cookieValue == "" || len(identifyList) != 2 {
-		return false
+		return this.isGuestAllowed()
 	}
 	username := identifyList[0]
 	identify := identifyList[1]
@@ -97,11 +98,11 @@ func (this *TemplateController) isLogin() bool {
 	if userValue == nil {
 		dbUser, err := models.UserModel.GetUserByUsername(username)
 		if err != nil || len(dbUser) == 0 {
-			return false
+			return this.isGuestAllowed()
 		}
 		// 检查用户是否被禁用或删除
 		if dbUser["is_delete"] != "0" || dbUser["is_forbidden"] != "0" {
-			return false
+			return this.isGuestAllowed()
 		}
 		userValue = dbUser
 	}
@@ -112,14 +113,14 @@ func (this *TemplateController) isLogin() bool {
 	expectedPure := utils.Encrypt.Md5Encode(userValue["password"])
 	expectedWithUA := utils.Encrypt.Md5Encode(this.Ctx.Request.UserAgent() + userValue["password"])
 	if identify != expectedUserPass && identify != expectedPure && identify != expectedWithUA {
-		return false
+		return this.isGuestAllowed()
 	}
 
 	// 刷新用户信息与 Session
 	newUser, err := models.UserModel.GetUserByUserId(userValue["user_id"])
 	if err != nil || len(newUser) == 0 || newUser["is_delete"] != "0" || newUser["is_forbidden"] != "0" {
 		this.ErrorLog("登录状态刷新用户失败")
-		return false
+		return this.isGuestAllowed()
 	}
 	this.SetSession("author", newUser)
 	this.User = newUser
@@ -352,7 +353,14 @@ func (this *TemplateController) RecordLog(message string, level int) {
 	this.Ctx.Request.ParseForm()
 	postParamsMap := map[string][]string(this.Ctx.Request.PostForm)
 	postParams, _ := json.Marshal(postParamsMap)
-	user := this.GetSession("author").(map[string]string)
+	userId := "0"
+	username := "guest"
+	if userVal := this.GetSession("author"); userVal != nil {
+		if user, ok := userVal.(map[string]string); ok && len(user) > 0 {
+			userId = user["user_id"]
+			username = user["username"]
+		}
+	}
 
 	logValue := map[string]interface{}{
 		"level":       level,
@@ -363,8 +371,8 @@ func (this *TemplateController) RecordLog(message string, level int) {
 		"ip":          this.GetClientIp(),
 		"user_agent":  userAgent,
 		"referer":     referer,
-		"user_id":     user["user_id"],
-		"username":    user["username"],
+		"user_id":     userId,
+		"username":    username,
 		"create_time": time.Now().Unix(),
 	}
 
