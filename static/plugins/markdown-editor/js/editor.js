@@ -1645,13 +1645,15 @@
         return;
       }
 
-      // 2. 回车列表智能续行与空项退出
+      // 2. 回车列表智能续行与空项退出 (已注释禁用：恢复纯粹原生换行，输入什么就是什么)
+      /*
       if (e.key === 'Enter') {
         if (self.handleEnter(e)) {
           e.preventDefault();
           return;
         }
       }
+      */
 
       // 3. Tab 缩进 (2空格) / Shift+Tab 反缩进
       if (e.key === 'Tab') {
@@ -1677,11 +1679,13 @@
         return;
       }
 
-      // 4. 括号/引号/Markdown符号自动成对与选区包裹
+      // 4. 括号/引号/Markdown符号自动成对与选区包裹 (已注释禁用：输入单个符号就是单个符号，取消自作聪明)
+      /*
       if (self.handleAutoPairs(e)) {
         e.preventDefault();
         return;
       }
+      */
 
       // 5. Alt+Up / Alt+Down 整行移动
       if (e.altKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
