@@ -425,6 +425,70 @@
     MMWikiEditor.ensureMarked();
   };
 
+  // ===== 剪贴板复制工具函数 (深度兼容 HTTP、HTTPS、Iframe 及老旧浏览器) =====
+  MMWikiEditor.copyToClipboard = function (text) {
+    if (typeof text !== 'string') text = String(text || '');
+
+    // 1. 如果在安全上下文并且支持现代 Clipboard API，优先尝试
+    if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+      return navigator.clipboard.writeText(text).catch(function () {
+        // 如果被 iframe permissions policy 策略阻止或抛错，降级到 execCommand
+        return MMWikiEditor.fallbackCopyText(text);
+      });
+    }
+
+    // 2. 降级方案：适用于 HTTP 环境、iframe 权限受限或不支持 Clipboard API 的浏览器
+    return MMWikiEditor.fallbackCopyText(text);
+  };
+
+  MMWikiEditor.fallbackCopyText = function (text) {
+    return new Promise(function (resolve, reject) {
+      var textArea = document.createElement('textarea');
+      textArea.value = text;
+      // 保证不可见且不触发页面滚动或移动端键盘弹出
+      textArea.style.position = 'fixed';
+      textArea.style.top = '0';
+      textArea.style.left = '0';
+      textArea.style.width = '2em';
+      textArea.style.height = '2em';
+      textArea.style.padding = '0';
+      textArea.style.border = 'none';
+      textArea.style.outline = 'none';
+      textArea.style.boxShadow = 'none';
+      textArea.style.background = 'transparent';
+      textArea.style.opacity = '0';
+      textArea.setAttribute('readonly', '');
+      document.body.appendChild(textArea);
+
+      var isIOS = navigator.userAgent.match(/ipad|ipod|iphone/i);
+      if (isIOS) {
+        var range = document.createRange();
+        range.selectNodeContents(textArea);
+        var sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+        textArea.setSelectionRange(0, 999999);
+      } else {
+        textArea.focus();
+        textArea.select();
+      }
+
+      var successful = false;
+      try {
+        successful = document.execCommand('copy');
+      } catch (err) {
+        successful = false;
+      }
+      document.body.removeChild(textArea);
+
+      if (successful) {
+        resolve();
+      } else {
+        reject(new Error('execCommand copy failed'));
+      }
+    });
+  };
+
   // ===== 静态独立 Markdown 渲染管线 (可供浏览页/展示页直接调用) =====
   MMWikiEditor.render = function (raw, targetEl, options) {
     if (!targetEl) return;
@@ -458,14 +522,26 @@
 
     // 代码块一键复制按钮
     targetEl.querySelectorAll('.hljs-copy-btn').forEach(function (btn) {
-      btn.addEventListener('click', function () {
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation();
         var codeEl = this.parentElement.querySelector('code');
-        if (codeEl && navigator.clipboard) {
-          navigator.clipboard.writeText(codeEl.textContent).then(function () {
-            btn.textContent = '已复制';
-            setTimeout(function () { btn.textContent = '复制'; }, 1500);
-          });
-        }
+        if (!codeEl) return;
+        var text = codeEl.textContent || '';
+        var selfBtn = this;
+        MMWikiEditor.copyToClipboard(text).then(function () {
+          selfBtn.textContent = '已复制';
+          selfBtn.classList.add('copied');
+          setTimeout(function () {
+            selfBtn.textContent = '复制';
+            selfBtn.classList.remove('copied');
+          }, 1500);
+        }).catch(function (err) {
+          console.warn('复制失败:', err);
+          selfBtn.textContent = '复制失败';
+          setTimeout(function () {
+            selfBtn.textContent = '复制';
+          }, 1500);
+        });
       });
     });
 
@@ -1870,6 +1946,34 @@
       this.updateLineNumbers();
     }
   };
+
+  // 全局代码块一键复制事件委托（双重保障：保证任意时机动态挂载的代码块复制按钮 100% 响应）
+  if (typeof document !== 'undefined' && !document._mmwikiCopyDelegated) {
+    document._mmwikiCopyDelegated = true;
+    document.addEventListener('click', function (e) {
+      var btn = e.target.closest ? e.target.closest('.hljs-copy-btn, .code-copy-btn') : null;
+      if (!btn) return;
+      var pre = btn.parentElement;
+      if (!pre) return;
+      var codeEl = pre.querySelector('code');
+      if (!codeEl) return;
+      var text = codeEl.textContent || '';
+      MMWikiEditor.copyToClipboard(text).then(function () {
+        btn.textContent = '已复制';
+        btn.classList.add('copied');
+        setTimeout(function () {
+          btn.textContent = '复制';
+          btn.classList.remove('copied');
+        }, 1500);
+      }).catch(function (err) {
+        console.warn('复制失败:', err);
+        btn.textContent = '复制失败';
+        setTimeout(function () {
+          btn.textContent = '复制';
+        }, 1500);
+      });
+    });
+  }
 
   window.MMWikiEditor = MMWikiEditor;
   window.MMWikiMarkdown = {

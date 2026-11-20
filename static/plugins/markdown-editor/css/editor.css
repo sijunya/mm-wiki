@@ -640,6 +640,13 @@ body.sidebar-open .resizer {
   color: var(--text-primary);
 }
 
+.preview-content pre .hljs-copy-btn.copied {
+  color: #10b981 !important;
+  border-color: #10b981 !important;
+  background: rgba(16, 185, 129, 0.1) !important;
+  opacity: 1 !important;
+}
+
 /* 表格与表格容器 */
 .preview-content .table-container {
   width: 100%;

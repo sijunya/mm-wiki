@@ -1081,19 +1081,17 @@ func (d *document) GenerateStandaloneHTML(title string, spaceName string, author
             btn.addEventListener('click', function() {
                 var code = pre.querySelector('code');
                 var text = code ? code.innerText : pre.innerText;
-                navigator.clipboard.writeText(text).then(function() {
-                    btn.textContent = '已复制!';
-                    btn.classList.add('copied');
-                    setTimeout(function() {
-                        btn.textContent = '复制';
-                        btn.classList.remove('copied');
-                    }, 1800);
-                }).catch(function() {
+                function fallbackCopy(str) {
                     var ta = document.createElement('textarea');
-                    ta.value = text;
+                    ta.value = str;
+                    ta.style.position = 'fixed';
+                    ta.style.top = '0';
+                    ta.style.left = '0';
+                    ta.style.opacity = '0';
                     document.body.appendChild(ta);
+                    ta.focus();
                     ta.select();
-                    document.execCommand('copy');
+                    try { document.execCommand('copy'); } catch(e) {}
                     document.body.removeChild(ta);
                     btn.textContent = '已复制!';
                     btn.classList.add('copied');
@@ -1101,7 +1099,21 @@ func (d *document) GenerateStandaloneHTML(title string, spaceName string, author
                         btn.textContent = '复制';
                         btn.classList.remove('copied');
                     }, 1800);
-                });
+                }
+                if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+                    navigator.clipboard.writeText(text).then(function() {
+                        btn.textContent = '已复制!';
+                        btn.classList.add('copied');
+                        setTimeout(function() {
+                            btn.textContent = '复制';
+                            btn.classList.remove('copied');
+                        }, 1800);
+                    }).catch(function() {
+                        fallbackCopy(text);
+                    });
+                } else {
+                    fallbackCopy(text);
+                }
             });
             pre.appendChild(btn);
         });
