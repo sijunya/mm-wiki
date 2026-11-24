@@ -259,6 +259,18 @@
         color: #ffffff;
     }
 
+    .btn-hist-action.btn-compare-current {
+        background: #f1f5f9;
+        color: #475569;
+        border-color: #cbd5e1;
+    }
+
+    .btn-hist-action.btn-compare-current:hover {
+        background: #e2e8f0;
+        color: var(--primary);
+        border-color: #94a3b8;
+    }
+
     .btn-hist-action.btn-rollback {
         background: #fff7ed;
         color: #c2410c;
@@ -478,13 +490,33 @@
                         <button type="button" class="btn-hist-action" onclick="openSnapshotPreview('{{$log.log_document_id}}', '{{$log.comment}}')">
                             <i class="fa fa-eye"></i> 查看快照
                         </button>
-                        <button type="button" class="btn-hist-action btn-diff" onclick="openDiffModal('{{$log.log_document_id}}', '{{$log.comment}}')">
-                            <i class="fa fa-columns"></i> 与当前版本对比 (Diff)
-                        </button>
-                        {{if eq $isEditor true}}
-                        <button type="button" class="btn-hist-action btn-rollback" onclick="confirmRollback('{{$log.log_document_id}}')">
-                            <i class="fa fa-history"></i> 恢复此版本
-                        </button>
+
+                        {{if eq $log.is_active_version "1"}}
+                            {{/* 当前活跃版本：展示“查看本次修改 (Diff)”，对比上一版本与当前版本的修改 */}}
+                            {{if eq $log.prev_has_snapshot "1"}}
+                                <button type="button" class="btn-hist-action btn-diff" onclick="openRevisionDiffModal('{{$log.prev_log_document_id}}', '{{$log.log_document_id}}', '版本 #{{$log.log_document_id}} 本次修改内容', '{{$log.comment}}')" title="查看本次修改所做的新增与删改">
+                                    <i class="fa fa-columns"></i> 查看本次修改 (Diff)
+                                </button>
+                            {{else}}
+                                <button type="button" class="btn-hist-action" style="opacity: 0.6; cursor: default;" title="无前置历史快照或为初始创建版本" disabled>
+                                    <i class="fa fa-info-circle"></i> 初始基准版本 (无前置对比)
+                                </button>
+                            {{end}}
+                        {{else}}
+                            {{/* 历史版本：可看“此版当时改动”以及“与当前最新对比” */}}
+                            {{if eq $log.prev_has_snapshot "1"}}
+                                <button type="button" class="btn-hist-action btn-diff" onclick="openRevisionDiffModal('{{$log.prev_log_document_id}}', '{{$log.log_document_id}}', '历史版本 #{{$log.log_document_id}} 当时改动', '{{$log.comment}}')" title="查看该历史版本在当时修改了什么">
+                                    <i class="fa fa-columns"></i> 查看此版改动 (Diff)
+                                </button>
+                            {{end}}
+                            <button type="button" class="btn-hist-action btn-compare-current" onclick="openDiffModal('{{$log.log_document_id}}', '{{$log.comment}}')" title="对比该历史版本与当前活跃最新版本的累积差异（恢复前预览）">
+                                <i class="fa fa-exchange"></i> 与当前最新对比
+                            </button>
+                            {{if eq $isEditor true}}
+                            <button type="button" class="btn-hist-action btn-rollback" onclick="confirmRollback('{{$log.log_document_id}}')">
+                                <i class="fa fa-history"></i> 恢复此版本
+                            </button>
+                            {{end}}
                         {{end}}
                     {{end}}
                 </div>
@@ -515,10 +547,13 @@
 <div id="diff-modal" class="history-modal" onclick="closeDiffModal(event)">
     <div class="modal-box">
         <div class="modal-box-header">
-            <h4 id="diff-modal-title"><i class="fa fa-columns"></i> 版本差异对比 (Diff)</h4>
+            <div>
+                <h4 id="diff-modal-title"><i class="fa fa-columns"></i> 版本差异对比 (Diff)</h4>
+                <div id="diff-modal-subtitle" style="font-size: 12px; color: #64748b; margin-top: 4px; display: flex; align-items: center; gap: 8px;"></div>
+            </div>
             <div style="display: flex; align-items: center; gap: 12px;">
                 <span style="font-size: 12px; color: #166534; background: #dcfce7; padding: 2px 8px; border-radius: 4px;">+ 新增内容</span>
-                <span style="font-size: 12px; color: #991b1b; background: #fee2e2; padding: 2px 8px; border-radius: 4px;">- 当前相对此历史版本缺失的内容</span>
+                <span style="font-size: 12px; color: #991b1b; background: #fee2e2; padding: 2px 8px; border-radius: 4px;">- 删除/缺失内容</span>
                 <button class="modal-close-btn" onclick="closeDiffModal(event)">&times;</button>
             </div>
         </div>
@@ -542,7 +577,7 @@
                 layer.closeAll('loading');
                 if (res && res.code === 1) {
                     var data = res.data || {};
-                    document.getElementById('preview-modal-title').innerHTML = '<i class="fa fa-eye"></i> 版本 #' + logId + ' 快照内容 <span style="font-size: 12px; font-weight: normal; color: #64748b;">(' + comment + ')</span>';
+                    document.getElementById('preview-modal-title').innerHTML = '<i class="fa fa-eye"></i> 版本 #' + logId + ' 快照内容 <span style="font-size: 12px; font-weight: normal; color: #64748b;">(' + escapeHtml(comment) + ')</span>';
                     document.getElementById('preview-content-box').textContent = data.content || '(空文档)';
                     document.getElementById('preview-modal').classList.add('active');
                 } else {
@@ -562,7 +597,32 @@
         }
     }
 
-    // 版本差异对比 (Diff)
+    // 跨版本对比 (Revision Diff: fromLogId ⟷ toLogId)
+    function openRevisionDiffModal(fromLogId, toLogId, title, comment) {
+        layer.load(2);
+        $.when(
+            $.ajax({ url: '/document/snapshot?document_id=' + currentDocId + '&log_document_id=' + fromLogId, type: 'GET', dataType: 'json' }),
+            $.ajax({ url: '/document/snapshot?document_id=' + currentDocId + '&log_document_id=' + toLogId, type: 'GET', dataType: 'json' })
+        ).done(function(resFrom, resTo) {
+            layer.closeAll('loading');
+            var fromData = (resFrom && resFrom[0]) || {};
+            var toData = (resTo && resTo[0]) || {};
+            if (fromData.code === 1 && toData.code === 1) {
+                var oldText = (fromData.data && fromData.data.content) || '';
+                var newText = (toData.data && toData.data.content) || '';
+                var subtitle = '对比基准：<span style="font-weight:600;color:#0f172a;">旧版本 #' + fromLogId + '</span> <i class="fa fa-long-arrow-right" style="color:#94a3b8;"></i> 变更版本：<span style="font-weight:600;color:#2563eb;">版本 #' + toLogId + '</span>' + (comment ? ' <span style="color:#64748b;">(' + escapeHtml(comment) + ')</span>' : '');
+                renderDiff(oldText, newText, title, subtitle);
+                document.getElementById('diff-modal').classList.add('active');
+            } else {
+                layer.msg((fromData.message || toData.message || '获取版本快照失败'), {icon: 2});
+            }
+        }).fail(function() {
+            layer.closeAll('loading');
+            layer.msg('网络异常，获取版本快照失败', {icon: 2});
+        });
+    }
+
+    // 历史版本与当前活跃最新版本对比 (Diff with active current)
     function openDiffModal(logId, comment) {
         layer.load(2);
         $.ajax({
@@ -574,7 +634,9 @@
                 if (res && res.code === 1) {
                     var snapshotText = (res.data && res.data.content) || '';
                     var currentText = document.getElementById('current-doc-content').value || '';
-                    renderDiff(snapshotText, currentText, logId, comment);
+                    var title = '历史版本 #' + logId + ' ⟷ 当前活跃版本 (恢复前预览)';
+                    var subtitle = '对比基准：<span style="font-weight:600;color:#0f172a;">历史版本 #' + logId + '</span>' + (comment ? ' (' + escapeHtml(comment) + ')' : '') + ' <i class="fa fa-long-arrow-right" style="color:#94a3b8;"></i> 目标：<span style="font-weight:600;color:#2563eb;">当前活跃版本</span> <span style="font-size:11px;background:#f1f5f9;color:#64748b;padding:1px 6px;border-radius:4px;margin-left:6px;">展示当前最新版相比此版本的改动</span>';
+                    renderDiff(snapshotText, currentText, title, subtitle);
                     document.getElementById('diff-modal').classList.add('active');
                 } else {
                     layer.msg((res && res.message) || '读取快照失败', {icon: 2});
@@ -594,7 +656,7 @@
     }
 
     // 轻量高效行级 Diff 渲染引擎
-    function renderDiff(oldStr, newStr, logId, comment) {
+    function renderDiff(oldStr, newStr, title, subtitle) {
         var oldLines = oldStr.split(/\r?\n/);
         var newLines = newStr.split(/\r?\n/);
 
@@ -659,7 +721,16 @@
         });
         html += '</div>';
 
-        document.getElementById('diff-modal-title').innerHTML = '<i class="fa fa-columns"></i> 历史版本 #' + logId + ' ⟷ 当前版本差异对比 <span style="font-size: 12px; font-weight: normal; color: #64748b;">(+' + addCount + ' / -' + delCount + ' 行)</span>';
+        if (addCount === 0 && delCount === 0) {
+            html = '<div style="text-align: center; padding: 48px 20px; color: #64748b;">' +
+                   '<i class="fa fa-check-circle" style="font-size: 36px; color: #10b981; margin-bottom: 12px; display: block;"></i>' +
+                   '<div style="font-size: 14px; font-weight: 600; color: #334155; margin-bottom: 4px;">两版本正文内容完全一致</div>' +
+                   '<div style="font-size: 12px;">未检测到任何文本新增或删减行差异</div>' +
+                   '</div>';
+        }
+
+        document.getElementById('diff-modal-title').innerHTML = '<i class="fa fa-columns"></i> ' + title + ' <span style="font-size: 12px; font-weight: normal; color: #64748b;">(+' + addCount + ' / -' + delCount + ' 行)</span>';
+        document.getElementById('diff-modal-subtitle').innerHTML = subtitle || '';
         document.getElementById('diff-container').innerHTML = html;
     }
 

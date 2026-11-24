@@ -275,7 +275,7 @@ func (this *DocumentController) History() {
 		this.ErrorLog("查看文档 " + documentId + " 修改历史失败：" + err.Error())
 		this.ViewError("查看文档修改历史失败！")
 	}
-	for _, logDocument := range logDocuments {
+	for i, logDocument := range logDocuments {
 		logDocument["username"] = ""
 		for _, user := range users {
 			if logDocument["user_id"] == user["user_id"] {
@@ -290,6 +290,29 @@ func (this *DocumentController) History() {
 		} else {
 			logDocument["has_snapshot"] = "0"
 			logDocument["snapshot_size"] = "-"
+		}
+
+		// Find previous log for calculating revision-to-revision diff
+		prevLogId := ""
+		prevHasSnapshot := "0"
+		if i+1 < len(logDocuments) {
+			prevLogId = logDocuments[i+1]["log_document_id"]
+		} else if int64(limit+number) < count {
+			// Query the immediately preceding log from the next page if available
+			nextPageLogs, _ := models.LogDocumentModel.GetLogDocumentsByDocumentIdAndLimit(documentId, limit+number, 1)
+			if len(nextPageLogs) > 0 {
+				prevLogId = nextPageLogs[0]["log_document_id"]
+			}
+		}
+		if prevLogId != "" && utils.Document.HasSnapshot(spaceId, documentId, prevLogId) {
+			prevHasSnapshot = "1"
+		}
+		logDocument["prev_log_document_id"] = prevLogId
+		logDocument["prev_has_snapshot"] = prevHasSnapshot
+		if page == 1 && i == 0 {
+			logDocument["is_active_version"] = "1"
+		} else {
+			logDocument["is_active_version"] = "0"
 		}
 	}
 
