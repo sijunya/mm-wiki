@@ -1839,6 +1839,8 @@
         self.toggleComment();
       } else if (isCtrl && e.key.toLowerCase() === 's') {
         e.preventDefault();
+        e.stopPropagation();
+        if (e.repeat) return;
         if (typeof self.options.onSave === 'function') {
           self.options.onSave();
         }

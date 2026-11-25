@@ -4,6 +4,8 @@
 
 var Page = {
 
+    isSaving: false,
+
     /**
      * ajax Save
      * @param element
@@ -57,7 +59,11 @@ var Page = {
                     callback(true, result.message);
                 } else if (isConfirm === false) {
                     if (window.editor && typeof window.editor.setSaveStatus === 'function') {
-                        window.editor.setSaveStatus('saved', '已保存于 ' + new Date().toLocaleTimeString());
+                        if (result.data === 'unchanged') {
+                            window.editor.setSaveStatus('saved', '内容无变化（已最新）');
+                        } else {
+                            window.editor.setSaveStatus('saved', '已保存于 ' + new Date().toLocaleTimeString());
+                        }
                     } else {
                         successBox(result.message, result.data);
                     }
@@ -75,14 +81,22 @@ var Page = {
 
         // 直接保存（不弹备注、不退出编辑）
         if (isConfirm === false) {
+            if (Page.isSaving) {
+                return false;
+            }
+            Page.isSaving = true;
             if (window.editor && typeof window.editor.setSaveStatus === 'function') {
                 window.editor.setSaveStatus('saving', '正在保存...');
             }
             var commentText = "";
             var options = {
                 dataType: 'json',
-                success: response,
+                success: function(result) {
+                    Page.isSaving = false;
+                    response(result);
+                },
                 error: function(xhr, status, error) {
+                    Page.isSaving = false;
                     if (typeof callback === 'function') {
                         callback(false, '网络异常: ' + error);
                     } else if (window.editor && typeof window.editor.setSaveStatus === 'function') {

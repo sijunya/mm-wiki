@@ -7,8 +7,20 @@ import (
 	"github.com/snail007/go-activerecord/mysql"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
+
+var docSaveLocks sync.Map
+
+func getDocSaveLock(documentId string) *sync.Mutex {
+	v, _ := docSaveLocks.LoadOrStore(documentId, &sync.Mutex{})
+	return v.(*sync.Mutex)
+}
+
+func normalizeNewlines(s string) string {
+	return strings.ReplaceAll(s, "\r\n", "\n")
+}
 
 const (
 	Document_Delete_True  = 1
@@ -410,7 +422,17 @@ func (d *Document) MoveDBAndFile(documentId string, spaceId string, updateValue 
 }
 
 // update document by document_id
-func (d *Document) UpdateDBAndFile(documentId string, spaceId string, document map[string]string, documentContent string, updateValue map[string]interface{}, comment string) (id int64, err error) {
+func (d *Document) UpdateDBAndFile(documentId string, spaceId string, document map[string]string, documentContent string, updateValue map[string]interface{}, comment string) (id int64, changed bool, err error) {
+
+	mu := getDocSaveLock(documentId)
+	mu.Lock()
+	defer mu.Unlock()
+
+	// Re-fetch latest document metadata inside the lock to avoid stale name/path races on concurrent saves
+	latestDoc, lErr := d.GetDocumentByDocumentId(documentId)
+	if lErr == nil && len(latestDoc) > 0 {
+		document = latestDoc
+	}
 
 	// get document page file
 	_, oldPageFile, err := DocumentModel.GetParentDocumentsByDocument(document)
@@ -420,7 +442,26 @@ func (d *Document) UpdateDBAndFile(documentId string, spaceId string, document m
 
 	// Read old content to detect change and preserve snapshot baseline if needed
 	oldContent, _ := utils.Document.GetContentByPageFile(oldPageFile)
-	contentChanged := (oldContent != documentContent)
+	contentChanged := (normalizeNewlines(oldContent) != normalizeNewlines(documentContent))
+	nameIsChange := false
+	if updateValue["name"].(string) != document["name"] {
+		nameIsChange = true
+	}
+
+	// If neither content nor title changed and no explicit comment was provided, skip duplicate logs and snapshots
+	if !contentChanged && !nameIsChange && strings.TrimSpace(comment) == "" {
+		// Ensure latest existing log still has a baseline snapshot if missing (e.g. legacy doc before snapshot feature)
+		if oldContent != "" {
+			latestLogs, gErr := LogDocumentModel.GetLogDocumentsByDocumentIdAndLimit(documentId, 0, 1)
+			if gErr == nil && len(latestLogs) > 0 {
+				latestLogId := latestLogs[0]["log_document_id"]
+				if !utils.Document.HasSnapshot(spaceId, documentId, latestLogId) {
+					_ = utils.Document.SaveSnapshot(spaceId, documentId, latestLogId, oldContent)
+				}
+			}
+		}
+		return 0, false, nil
+	}
 
 	// begin update
 	db := G.DB()
@@ -442,10 +483,6 @@ func (d *Document) UpdateDBAndFile(documentId string, spaceId string, document m
 
 	// update document file
 	docType := utils.Convert.StringToInt(document["type"])
-	nameIsChange := false
-	if updateValue["name"].(string) != document["name"] {
-		nameIsChange = true
-	}
 	err = utils.Document.Update(oldPageFile, updateValue["name"].(string), documentContent, docType, nameIsChange)
 	if err != nil {
 		tx.Rollback()
@@ -482,7 +519,7 @@ func (d *Document) UpdateDBAndFile(documentId string, spaceId string, document m
 		_, _ = FollowModel.CreateAutoFollowDocument(updateValue["edit_user_id"].(string), documentId)
 	}(documentId)
 
-	return
+	return id, true, nil
 }
 
 // RollbackDBAndFile restores document content from a historical snapshot
@@ -505,7 +542,7 @@ func (d *Document) RollbackDBAndFile(documentId string, spaceId string, targetLo
 		"edit_user_id": editUserId,
 	}
 	comment := fmt.Sprintf("恢复文档至历史版本 #%s", targetLogId)
-	_, err = d.UpdateDBAndFile(documentId, spaceId, document, targetContent, updateValue, comment)
+	_, _, err = d.UpdateDBAndFile(documentId, spaceId, document, targetContent, updateValue, comment)
 	return err
 }
 

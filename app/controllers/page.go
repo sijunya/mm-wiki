@@ -252,10 +252,19 @@ func (this *PageController) Modify() {
 		"name":         newName,
 		"edit_user_id": this.UserId,
 	}
-	_, err = models.DocumentModel.UpdateDBAndFile(documentId, spaceId, document, documentContent, updateValue, comment)
+	_, changed, err := models.DocumentModel.UpdateDBAndFile(documentId, spaceId, document, documentContent, updateValue, comment)
 	if err != nil {
 		this.ErrorLog("修改文档 " + documentId + " 失败：" + err.Error())
 		this.jsonError("修改文档失败！")
+	}
+
+	if !changed {
+		if saveType == "0" {
+			this.jsonSuccess("文档内容未发生变化！", saveType, "/document/index?document_id="+documentId)
+		} else {
+			this.jsonSuccess("文档内容无变化（已最新）", "unchanged")
+		}
+		return
 	}
 
 	// send email to follow user
